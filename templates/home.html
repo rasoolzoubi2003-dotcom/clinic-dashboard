@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h3 style="color: #0f172a; margin-top: 0;">⚙️ Schedule Setup</h3>
+
+<form action="/generate-schedule" method="POST" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px;">
+    <div>
+        <label style="font-weight: bold;">Select Doctor / Service:</label>
+        <!-- قائمة منسدلة باختيارات الأطباء المحددة -->
+        <select name="service_name" required style="width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc;">
+            <option value="" disabled selected>-- Choose a Doctor --</option>
+            {% for doc in doctors %}
+                <option value="{{ doc }}">{{ doc }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label style="font-weight: bold;">Slot Duration (Minutes):</label>
+        <input type="number" name="slot_duration" value="30" required style="width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box;">
+    </div>
+
+    <div>
+        <label style="font-weight: bold;">Start Time:</label>
+        <input type="time" name="start_time" value="09:00" required style="width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box;">
+    </div>
+
+    <div>
+        <label style="font-weight: bold;">End Time:</label>
+        <input type="time" name="end_time" value="13:00" required style="width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box;">
+    </div>
+
+    <button type="submit" style="grid-column: span 2; background-color: #2563eb; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 6px; cursor: pointer;">
+        Generate Time Slots ⚡
+    </button>
+</form>
+
+<hr style="border: 0.5px solid #e2e8f0;">
+
+<h3 style="color: #0f172a; margin-top: 25px;">📅 Available & Booked Appointments</h3>
+
+{% if error == 'already_booked' %}
+<div style="background-color: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; text-align: center;">
+    ⚠️ This patient already has an active booking! Multiple bookings for the same patient are not allowed.
+</div>
+{% endif %}
+
+<div class="grid">
+    {% if appointments %}
+        {% for app in appointments %}
+        <div class="card {% if app.is_booked %}booked{% endif %}">
+            <h4 style="margin: 0 0 8px 0; color: #1e293b;">{{ app.service_name }}</h4>
+            <p style="margin: 0 0 10px 0; color: #64748b; font-size: 14px;">⏱️ {{ app.time_slot }}</p>
+
+            {% if not app.is_booked %}
+                <span style="color: #16a34a; font-weight: bold; font-size: 13px;">Available 🟢</span>
+                <form action="/book-slot/{{ app.id }}" method="POST" style="margin-top: 10px;">
+                    <input type="text" name="patient_name" placeholder="Patient Name" required style="width: 100%; padding: 6px; margin-bottom: 5px; box-sizing: border-box;">
+                    <button type="submit" style="width: 100%; background-color: #16a34a; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer;">
+                        Confirm Booking
+                    </button>
+                </form>
+            {% else %}
+                <span style="color: #dc2626; font-weight: bold; font-size: 13px;">Booked 🔴 ({% if app.patient_name %}{{ app.patient_name }}{% else %}Reserved{% endif %})</span>
+                <form action="/cancel-slot/{{ app.id }}" method="POST" style="margin-top: 10px;">
+                    <button type="submit" style="width: 100%; background-color: #ef4444; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer;">
+                        Cancel Booking
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="color: #94a3b8; grid-column: span 3; text-align: center;">No appointments generated yet. Select a doctor above.</p>
+    {% endif %}
+</div>
+{% endblock %}
