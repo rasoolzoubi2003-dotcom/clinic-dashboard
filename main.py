@@ -25,7 +25,7 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 DOCTORS_LIST = [
-    "Dr. Khalil (Cardiology)",
+    "Dr. zoubi (Cardiology)",
     "Dr. Sarah (Pediatrics)",
     "Dr. Rasool (Dermatology)",
     "Dr. Ali (General Medicine)"
