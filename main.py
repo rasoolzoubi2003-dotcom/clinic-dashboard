@@ -27,7 +27,7 @@ templates = Jinja2Templates(directory="templates")
 DOCTORS_LIST = [
     "Dr. Khalil (Cardiology)",
     "Dr. Sarah (Pediatrics)",
-    "Dr. Ahmad (Dermatology)",
+    "Dr. Rasool (Dermatology)",
     "Dr. Ali (General Medicine)"
 ]
 
