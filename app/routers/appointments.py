@@ -3,7 +3,6 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
@@ -11,9 +10,9 @@ from app import messages, services
 from app.clock import today
 from app.database import get_db
 from app.schemas import BookingCreate, ScheduleCreate, error_code
+from app.templating import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 
 def home_url(**params) -> str:
