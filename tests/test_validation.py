@@ -59,12 +59,30 @@ def test_invalid_schedule_input(overrides, expected):
 
 
 def test_booking_name_is_normalised():
-    assert BookingCreate(patient_name="  Lina    Haddad ").patient_name == "Lina Haddad"
+    data = BookingCreate(patient_name="  Lina    Haddad ", phone_number="0791234567")
+    assert data.patient_name == "Lina Haddad"
 
 
 @pytest.mark.parametrize("name", ["", "   ", "x" * 101])
 def test_invalid_patient_name(name):
-    assert code_for(BookingCreate, patient_name=name) == "invalid_name"
+    assert code_for(BookingCreate, patient_name=name, phone_number="0791234567") == "invalid_name"
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("079 123 4567", "0791234567"),
+        ("+962 (79) 123-4567", "+962791234567"),
+        ("٠٧٩١٢٣٤٥٦٧", "0791234567"),  # Arabic-Indic digits
+    ],
+)
+def test_phone_is_normalised(raw, expected):
+    assert BookingCreate(patient_name="Lina", phone_number=raw).phone_number == expected
+
+
+@pytest.mark.parametrize("phone", ["", "123", "phone", "07912345abc", "1" * 16, "++962791234567"])
+def test_invalid_phone(phone):
+    assert code_for(BookingCreate, patient_name="Lina", phone_number=phone) == "invalid_phone"
 
 
 # --- Routes ---------------------------------------------------------------
@@ -101,7 +119,7 @@ def test_empty_patient_name_is_rejected(client, db, doctor):
     services.generate_slots(db, doctor.id, day, dt.time(9), dt.time(10), 30)
     slot = services.list_slots(db, doctor.id, day)[0]
 
-    response = client.post(f"/book-slot/{slot.id}", data={"patient_name": "   "})
+    response = client.post(f"/book-slot/{slot.id}", data={"patient_name": "   ", "phone_number": "0791234567"})
     assert "Please enter the patient's name" in response.text.replace("&#39;", "'")
     db.refresh(slot)
     assert not slot.is_booked

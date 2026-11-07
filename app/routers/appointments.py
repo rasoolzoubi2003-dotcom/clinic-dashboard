@@ -101,7 +101,12 @@ async def generate_schedule(
 
 
 @router.post("/book-slot/{slot_id}")
-async def book_slot(slot_id: int, patient_name: str = Form(""), db: Session = Depends(get_db)):
+async def book_slot(
+    slot_id: int,
+    patient_name: str = Form(""),
+    phone_number: str = Form(""),
+    db: Session = Depends(get_db),
+):
     try:
         slot = services.get_slot(db, slot_id)
     except services.ServiceError as exc:
@@ -109,8 +114,8 @@ async def book_slot(slot_id: int, patient_name: str = Form(""), db: Session = De
 
     back = {"doctor_id": slot.doctor_id, "date": slot.date}
     try:
-        data = BookingCreate(patient_name=patient_name)
-        services.book_slot(db, slot_id, data.patient_name)
+        data = BookingCreate(patient_name=patient_name, phone_number=phone_number)
+        services.book_slot(db, slot_id, data.patient_name, data.phone_number)
     except ValidationError as exc:
         return redirect(**back, error=error_code(exc))
     except services.ServiceError as exc:

@@ -21,6 +21,7 @@ ERRORS = {
     "invalid_date": "Please enter a valid date.",
     "past_date": "You can't create a schedule for a date in the past.",
     "invalid_name": "Please enter the patient's name (up to 100 characters).",
+    "invalid_phone": "Please enter a valid phone number (7-15 digits, optionally starting with +).",
     "invalid_input": "Some values were invalid. Please check the form and try again.",
 }
 
