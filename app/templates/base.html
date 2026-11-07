@@ -18,9 +18,10 @@
                 ClinicBook
             </a>
             <nav class="flex items-center gap-1 text-sm">
-                {% block nav %}
-                <a href="/" class="rounded-md px-3 py-2 font-medium text-slate-200 hover:bg-slate-800 hover:text-white">Dashboard</a>
-                {% endblock %}
+                {% set nav_cls = "rounded-md px-3 py-2 font-medium text-slate-300 hover:bg-slate-800 hover:text-white" %}
+                {% set active_cls = "rounded-md bg-slate-800 px-3 py-2 font-medium text-white" %}
+                <a href="/" class="{{ active_cls if request.url.path == '/' else nav_cls }}">Dashboard</a>
+                <a href="/assistant" class="{{ active_cls if request.url.path == '/assistant' else nav_cls }}">AI Assistant</a>
             </nav>
         </div>
     </header>
@@ -30,7 +31,8 @@
     </main>
 
     <footer class="mx-auto max-w-6xl px-4 pb-8 text-xs text-slate-400 sm:px-6">
-        Built with FastAPI, SQLAlchemy and Jinja2.
+        Built with FastAPI, SQLAlchemy, Jinja2 and a local LLM (Ollama).
     </footer>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

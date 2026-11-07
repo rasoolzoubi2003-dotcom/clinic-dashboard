@@ -25,3 +25,25 @@ def build_provider(name: str) -> LLMProvider:
     raise ProviderNotConfigured(
         f"Unknown LLM provider '{name}'. Set LLM_PROVIDER to one of: {', '.join(SUPPORTED_PROVIDERS)}."
     )
+
+
+def build_providers(primary_name: str, fallback_name: str = "") -> tuple[LLMProvider | None, LLMProvider | None, str | None]:
+    """Return (primary, fallback, setup_error) from provider names.
+
+    If the primary can't be set up (e.g. Claude without an API key) but a fallback can,
+    the fallback is promoted so the assistant still works.
+    """
+    errors: list[str] = []
+    primary = fallback = None
+    try:
+        primary = build_provider(primary_name)
+    except ProviderNotConfigured as exc:
+        errors.append(exc.user_message)
+    if fallback_name and fallback_name != primary_name:
+        try:
+            fallback = build_provider(fallback_name)
+        except ProviderNotConfigured as exc:
+            errors.append(exc.user_message)
+    if primary is None:
+        primary, fallback = fallback, None
+    return primary, fallback, " ".join(errors) or None
