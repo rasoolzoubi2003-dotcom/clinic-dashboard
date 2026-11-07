@@ -8,9 +8,52 @@ services:
         required: false
     environment:
       DATABASE_URL: sqlite:////app/data/clinic.db
+      OLLAMA_HOST: http://ollama:11434
     volumes:
       - clinic-data:/app/data
+    depends_on:
+      ollama:
+        condition: service_healthy
     restart: unless-stopped
+
+  # Local LLM server. Models are stored in a volume so they're only downloaded once.
+  ollama:
+    image: ollama/ollama:0.40.6
+    ports:
+      # Localhost only: lets an app running in a venv on the host use this Ollama too.
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    environment:
+      # Keep the model in memory between chats (loading it takes several seconds).
+      OLLAMA_KEEP_ALIVE: 30m
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    # NVIDIA GPU (optional): requires the NVIDIA Container Toolkit.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # One-off init step: pulls the model on first start (skipped quickly if already present).
+  # The app starts without waiting for it; the assistant page shows a notice until the model is ready.
+  ollama-init:
+    image: ollama/ollama:0.40.6
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["ollama", "pull", "${OLLAMA_MODEL:-qwen2.5:7b}"]
+    restart: "no"
 
 volumes:
   clinic-data:
+  ollama-models:
