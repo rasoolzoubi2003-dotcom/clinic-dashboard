@@ -26,11 +26,8 @@ async def view_appointments(
     error: str = None,
     db: Session = Depends(get_db),
 ):
-    if not selected_doctor:
-        db.query(Appointment).delete()
-        db.commit()
-        appointments = []
-    else:
+    appointments = []
+    if selected_doctor:
         appointments = db.query(Appointment).filter(Appointment.service_name == selected_doctor).all()
 
     return templates.TemplateResponse(
