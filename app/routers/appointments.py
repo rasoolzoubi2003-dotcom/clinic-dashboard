@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from app import services
+from app import messages, services
 from app.clock import today
 from app.database import get_db
 from app.schemas import BookingCreate, ScheduleCreate, error_code
@@ -26,17 +26,36 @@ def redirect(**params) -> RedirectResponse:
     return RedirectResponse(url=home_url(**params), status_code=303)
 
 
+def _parse_int(value: str | None) -> int | None:
+    try:
+        return int(value) if value else None
+    except ValueError:
+        return None
+
+
+def _parse_date(value: str | None) -> dt.date | None:
+    try:
+        return dt.date.fromisoformat(value) if value else None
+    except ValueError:
+        return None
+
+
 @router.get("/", response_class=HTMLResponse)
 async def view_appointments(
     request: Request,
-    doctor_id: int | None = None,
-    date: dt.date | None = None,
+    doctor_id: str | None = None,
+    date: str | None = None,
     error: str | None = None,
+    success: str | None = None,
+    created: str | None = None,
+    skipped: str | None = None,
     db: Session = Depends(get_db),
 ):
-    selected_date = date or today()
+    # Query params are parsed leniently: a bad value falls back to the default instead of a 422.
+    selected_date = _parse_date(date) or today()
+    selected_id = _parse_int(doctor_id)
     doctors = services.list_doctors(db)
-    selected_doctor = next((d for d in doctors if d.id == doctor_id), None)
+    selected_doctor = next((d for d in doctors if d.id == selected_id), None)
     appointments = services.list_slots(db, selected_doctor.id, selected_date) if selected_doctor else []
 
     return templates.TemplateResponse(
@@ -48,7 +67,10 @@ async def view_appointments(
             "selected_doctor": selected_doctor,
             "selected_date": selected_date,
             "min_date": today(),
-            "error": error,
+            "error_message": messages.error_message(error),
+            "success_message": messages.success_message(
+                success, _parse_int(created) or 0, _parse_int(skipped) or 0
+            ),
         },
     )
 
@@ -69,12 +91,14 @@ async def generate_schedule(
         data = ScheduleCreate(
             doctor_id=doctor_id, date=date, start_time=start_time, end_time=end_time, slot_duration=slot_duration
         )
-        services.generate_slots(db, data.doctor_id, data.date, data.start_time, data.end_time, data.slot_duration)
+        result = services.generate_slots(
+            db, data.doctor_id, data.date, data.start_time, data.end_time, data.slot_duration
+        )
     except ValidationError as exc:
         return redirect(**back, error=error_code(exc))
     except services.ServiceError as exc:
         return redirect(**back, error=exc.code)
-    return redirect(**back)
+    return redirect(**back, success="generated", created=result.created, skipped=result.skipped)
 
 
 @router.post("/book-slot/{slot_id}")
@@ -92,7 +116,7 @@ async def book_slot(slot_id: int, patient_name: str = Form(""), db: Session = De
         return redirect(**back, error=error_code(exc))
     except services.ServiceError as exc:
         return redirect(**back, error=exc.code)
-    return redirect(**back)
+    return redirect(**back, success="booked")
 
 
 @router.post("/cancel-slot/{slot_id}")
@@ -101,4 +125,4 @@ async def cancel_slot(slot_id: int, db: Session = Depends(get_db)):
         slot = services.cancel_booking(db, slot_id)
     except services.ServiceError as exc:
         return redirect(error=exc.code)
-    return redirect(doctor_id=slot.doctor_id, date=slot.date)
+    return redirect(doctor_id=slot.doctor_id, date=slot.date, success="cancelled")

@@ -46,9 +46,14 @@
 
 <h3 style="color: #0f172a; margin-top: 25px;">📅 Available & Booked Appointments</h3>
 
-{% if error == 'patient_already_booked' %}
-<div style="background-color: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; text-align: center;">
-    ⚠️ This patient already has an active booking! Multiple bookings for the same patient are not allowed.
+{% if error_message %}
+<div role="alert" style="background-color: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; text-align: center;">
+    ⚠️ {{ error_message }}
+</div>
+{% endif %}
+{% if success_message %}
+<div role="status" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; text-align: center;">
+    ✅ {{ success_message }}
 </div>
 {% endif %}
 
