@@ -4,6 +4,7 @@ Routes (and the tests) call these functions; they never touch the request or res
 Failures raise a ServiceError subclass whose `code` the UI maps to a message.
 """
 
+from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
 from sqlalchemy import func, select, update
@@ -56,30 +57,42 @@ def get_doctor(db: Session, doctor_id: int) -> Doctor:
     return doctor
 
 
+@dataclass
+class GenerationResult:
+    created: int
+    skipped: int
+
+
 def generate_slots(
     db: Session, doctor_id: int, day: date, start: time, end: time, duration_minutes: int
-) -> int:
-    """Create back-to-back slots between start and end. Returns how many were created."""
+) -> GenerationResult:
+    """Create back-to-back slots between start and end.
+
+    Slots that would overlap an existing slot for the same doctor and day are skipped,
+    so generating the same schedule twice never creates duplicates.
+    """
     # Routes validate input with schemas.ScheduleCreate; this guard keeps direct callers
     # from ever starting an endless loop.
     if duration_minutes < 1 or end <= start:
         raise InvalidSchedule()
     get_doctor(db, doctor_id)
+
+    existing = [(s.start_time, s.end_time) for s in list_slots(db, doctor_id, day)]
     step = timedelta(minutes=duration_minutes)
     current = datetime.combine(day, start)
     end_dt = datetime.combine(day, end)
 
-    created = 0
+    created = skipped = 0
     while current + step <= end_dt:
-        db.add(
-            Appointment(
-                doctor_id=doctor_id, date=day, start_time=current.time(), end_time=(current + step).time()
-            )
-        )
-        created += 1
+        slot_start, slot_end = current.time(), (current + step).time()
+        if any(s < slot_end and e > slot_start for s, e in existing):
+            skipped += 1
+        else:
+            db.add(Appointment(doctor_id=doctor_id, date=day, start_time=slot_start, end_time=slot_end))
+            created += 1
         current += step
     db.commit()
-    return created
+    return GenerationResult(created=created, skipped=skipped)
 
 
 def list_slots(db: Session, doctor_id: int, day: date) -> list[Appointment]:
