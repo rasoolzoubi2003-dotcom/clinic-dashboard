@@ -22,3 +22,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Clinic Appointment Booking", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 app.include_router(appointments.router)
+
+
+@app.get("/health", include_in_schema=False)
+def health() -> dict:
+    return {"status": "ok"}
