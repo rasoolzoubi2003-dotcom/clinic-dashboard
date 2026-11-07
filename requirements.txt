@@ -4,3 +4,4 @@ SQLAlchemy==2.0.57
 Jinja2==3.1.6
 python-multipart==0.0.32
 python-dotenv==1.2.4
+tzdata==2026.6

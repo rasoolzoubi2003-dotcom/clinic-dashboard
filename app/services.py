@@ -9,6 +9,7 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, joinedload
 
+from app.clock import now
 from app.models import Appointment, Doctor
 
 
@@ -36,6 +37,14 @@ class SlotNotBooked(ServiceError):
     code = "slot_not_booked"
 
 
+class SlotInPast(ServiceError):
+    code = "slot_in_past"
+
+
+class InvalidSchedule(ServiceError):
+    code = "invalid_input"
+
+
 def list_doctors(db: Session) -> list[Doctor]:
     return list(db.scalars(select(Doctor).order_by(Doctor.name)))
 
@@ -51,6 +60,10 @@ def generate_slots(
     db: Session, doctor_id: int, day: date, start: time, end: time, duration_minutes: int
 ) -> int:
     """Create back-to-back slots between start and end. Returns how many were created."""
+    # Routes validate input with schemas.ScheduleCreate; this guard keeps direct callers
+    # from ever starting an endless loop.
+    if duration_minutes < 1 or end <= start:
+        raise InvalidSchedule()
     get_doctor(db, doctor_id)
     step = timedelta(minutes=duration_minutes)
     current = datetime.combine(day, start)
@@ -95,6 +108,8 @@ def book_slot(db: Session, slot_id: int, patient_name: str) -> Appointment:
     slot = get_slot(db, slot_id)
     if slot.is_booked:
         raise SlotAlreadyBooked()
+    if datetime.combine(slot.date, slot.start_time) <= now():
+        raise SlotInPast()
 
     conflict = db.scalars(
         select(Appointment).where(

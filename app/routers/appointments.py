@@ -3,10 +3,13 @@ import datetime as dt
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app import services
+from app.clock import today
 from app.database import get_db
+from app.schemas import BookingCreate, ScheduleCreate, error_code
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -20,7 +23,7 @@ async def view_appointments(
     error: str | None = None,
     db: Session = Depends(get_db),
 ):
-    selected_date = date or dt.date.today()
+    selected_date = date or today()
     doctors = services.list_doctors(db)
     selected_doctor = next((d for d in doctors if d.id == doctor_id), None)
     appointments = services.list_slots(db, selected_doctor.id, selected_date) if selected_doctor else []
@@ -33,32 +36,52 @@ async def view_appointments(
             "doctors": doctors,
             "selected_doctor": selected_doctor,
             "selected_date": selected_date,
+            "min_date": today(),
             "error": error,
         },
     )
 
 
+# Form fields are read as plain strings and validated by the Pydantic schemas, so bad input
+# produces a friendly message instead of FastAPI's default 422 JSON response.
 @router.post("/generate-schedule")
 async def generate_schedule(
-    doctor_id: int = Form(...),
-    date: dt.date = Form(...),
-    start_time: dt.time = Form(...),
-    end_time: dt.time = Form(...),
-    slot_duration: int = Form(...),
+    doctor_id: str = Form(""),
+    date: str = Form(""),
+    start_time: str = Form(""),
+    end_time: str = Form(""),
+    slot_duration: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    services.generate_slots(db, doctor_id, date, start_time, end_time, slot_duration)
-    return RedirectResponse(url=f"/?doctor_id={doctor_id}&date={date}", status_code=303)
+    back = f"/?doctor_id={doctor_id}&date={date}"
+    try:
+        data = ScheduleCreate(
+            doctor_id=doctor_id, date=date, start_time=start_time, end_time=end_time, slot_duration=slot_duration
+        )
+        services.generate_slots(db, data.doctor_id, data.date, data.start_time, data.end_time, data.slot_duration)
+    except ValidationError as exc:
+        return RedirectResponse(url=f"{back}&error={error_code(exc)}", status_code=303)
+    except services.ServiceError as exc:
+        return RedirectResponse(url=f"{back}&error={exc.code}", status_code=303)
+    return RedirectResponse(url=back, status_code=303)
 
 
 @router.post("/book-slot/{slot_id}")
-async def book_slot(slot_id: int, patient_name: str = Form(...), db: Session = Depends(get_db)):
+async def book_slot(slot_id: int, patient_name: str = Form(""), db: Session = Depends(get_db)):
     try:
         slot = services.get_slot(db, slot_id)
-        services.book_slot(db, slot_id, patient_name.strip())
     except services.ServiceError as exc:
         return RedirectResponse(url=f"/?error={exc.code}", status_code=303)
-    return RedirectResponse(url=f"/?doctor_id={slot.doctor_id}&date={slot.date}", status_code=303)
+
+    back = f"/?doctor_id={slot.doctor_id}&date={slot.date}"
+    try:
+        data = BookingCreate(patient_name=patient_name)
+        services.book_slot(db, slot_id, data.patient_name)
+    except ValidationError as exc:
+        return RedirectResponse(url=f"{back}&error={error_code(exc)}", status_code=303)
+    except services.ServiceError as exc:
+        return RedirectResponse(url=f"{back}&error={exc.code}", status_code=303)
+    return RedirectResponse(url=back, status_code=303)
 
 
 @router.post("/cancel-slot/{slot_id}")
