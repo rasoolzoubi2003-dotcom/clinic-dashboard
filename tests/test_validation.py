@@ -73,7 +73,6 @@ def test_invalid_patient_name(name):
     [
         ("079 123 4567", "0791234567"),
         ("+962 (79) 123-4567", "+962791234567"),
-        ("٠٧٩١٢٣٤٥٦٧", "0791234567"),  # Arabic-Indic digits
     ],
 )
 def test_phone_is_normalised(raw, expected):

@@ -16,9 +16,6 @@ MIN_SLOT_MINUTES = 1
 MAX_SLOT_MINUTES = 240
 MAX_NAME_LENGTH = 100
 
-# Arabic-Indic and Extended Arabic-Indic (Persian) digits -> ASCII.
-_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
-
 
 def normalize_name(value: str) -> str:
     """Collapse whitespace; raise PydanticCustomError if empty or too long."""
@@ -30,7 +27,7 @@ def normalize_name(value: str) -> str:
 
 def normalize_phone(value: str) -> str:
     """Normalize a phone number to an optional '+' followed by 7-15 digits."""
-    value = value.translate(_DIGITS).strip()
+    value = value.strip()
     has_plus = value.startswith("+")
     digits = re.sub(r"[\s\-().]", "", value[1:] if has_plus else value)
     if not digits.isdigit() or not 7 <= len(digits) <= 15:

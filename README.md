@@ -20,7 +20,7 @@ Built with **FastAPI**, **SQLAlchemy 2.0**, **Jinja2** and **Tailwind CSS**, wit
 - **Clear feedback**: every failure (missing slot, already booked, invalid input) shows a specific message, and successful actions are confirmed.
 - **Input validation** with Pydantic: slot duration range, end time after start time, no past dates, and a required patient name.
 - **Persistent storage** in SQLite, configurable through `DATABASE_URL`.
-- **Responsive UI** that works on desktop and mobile and supports Arabic (RTL) patient names.
+- **Responsive UI** that works on desktop and mobile.
 
 ## Tech stack
 
