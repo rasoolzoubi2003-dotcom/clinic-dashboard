@@ -1,0 +1,25 @@
+{# Shared UI macros. Import with: {% import "_ui.html" as ui %} #}
+
+{% macro icon(name, cls="h-5 w-5") -%}
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="{{ cls }}" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="{{ ICON_PATHS[name] }}"/></svg>
+{%- endmacro %}
+
+{% macro doctor_avatar(doctor, size="h-11 w-11 text-base") -%}
+{% set t = SPECIALTY_THEMES.get(doctor.specialty, DEFAULT_THEME) %}
+{% set initial = doctor.name.replace("Dr. ", "")[:1] | upper %}
+<span class="inline-flex {{ size }} shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br {{ t.avatar }} font-bold text-white shadow-md shadow-slate-900/10">{{ initial }}</span>
+{%- endmacro %}
+
+{% macro alert(kind, text) -%}
+{% if kind == "error" %}
+<div role="alert" class="animate-pop mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-white px-4 py-3.5 text-sm text-red-800 shadow-lg shadow-red-500/10">
+    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">{{ icon("alert", "h-5 w-5") }}</span>
+    <p class="pt-1.5">{{ text }}</p>
+</div>
+{% else %}
+<div role="status" class="animate-pop mb-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white px-4 py-3.5 text-sm text-emerald-800 shadow-lg shadow-emerald-500/10">
+    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">{{ icon("check-circle", "h-5 w-5") }}</span>
+    <p class="pt-1.5 font-medium">{{ text }}</p>
+</div>
+{% endif %}
+{%- endmacro %}

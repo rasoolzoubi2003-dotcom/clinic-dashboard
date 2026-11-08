@@ -10,33 +10,60 @@
   const statusDot = el("status-dot");
   let busy = false;
 
-  // Model replies are shown as plain text (never as HTML). Strip markdown bold that small models like to add.
+  // Message text is always inserted with textContent, never as HTML.
+  // Strip markdown bold that small models like to add; replies are shown as plain text.
   const clean = (text) => (text || "").replace(/\*\*(.+?)\*\*/g, "$1").trim();
 
-  function addMessage(role, text, { error = false } = {}) {
+  function avatar(role, error) {
+    const span = document.createElement("span");
+    const tone =
+      role === "user"
+        ? "bg-slate-800 text-white"
+        : error
+          ? "bg-rose-100 text-rose-600"
+          : "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-indigo-500/30";
+    span.className = `inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${tone}`;
+    span.append(el(role === "user" ? "icon-user" : "icon-assistant").content.cloneNode(true));
+    return span;
+  }
+
+  function addRow(role, { error = false } = {}) {
     const item = document.createElement("li");
-    item.className = role === "user" ? "flex justify-end" : "flex";
+    item.className = role === "user" ? "flex flex-row-reverse items-end gap-2.5" : "flex items-end gap-2.5";
     const bubble = document.createElement("div");
-    const base = "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm";
-    if (role === "user") bubble.className = `${base} rounded-br-sm bg-blue-600 text-white`;
-    else if (error) bubble.className = `${base} rounded-bl-sm border border-red-200 bg-red-50 text-red-700`;
-    else bubble.className = `${base} rounded-bl-sm bg-slate-100 text-slate-800`;
-    bubble.textContent = clean(text);
-    item.appendChild(bubble);
+    const base = "animate-pop max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm";
+    if (role === "user")
+      bubble.className = `${base} rounded-br-md bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-indigo-500/25`;
+    else if (error) bubble.className = `${base} rounded-bl-md bg-rose-50 text-rose-800 ring-1 ring-rose-200`;
+    else bubble.className = `${base} rounded-bl-md bg-white text-slate-800 shadow-md shadow-slate-900/5 ring-1 ring-slate-900/5`;
+    item.append(avatar(role, error), bubble);
     messages.appendChild(item);
     messages.scrollTop = messages.scrollHeight;
-    return item;
+    return { item, bubble };
+  }
+
+  function addMessage(role, text, options) {
+    addRow(role, options).bubble.textContent = clean(text);
   }
 
   function showTyping() {
-    const item = addMessage("assistant", "Thinking…");
-    const bubble = item.firstChild;
-    bubble.classList.add("text-slate-500", "italic");
+    const { item, bubble } = addRow("assistant");
+    bubble.classList.add("flex", "items-center", "gap-3");
+    const dots = document.createElement("span");
+    dots.className = "flex items-center gap-1";
+    for (let i = 0; i < 3; i++) {
+      const dot = document.createElement("span");
+      dot.className = "typing-dot h-2 w-2 rounded-full bg-indigo-400";
+      dots.appendChild(dot);
+    }
+    const note = document.createElement("span");
+    note.className = "text-xs text-slate-400";
+    bubble.append(dots, note);
     const started = Date.now();
     // Local models on a CPU can take a while; show elapsed time so it doesn't look frozen.
     const timer = setInterval(() => {
       const seconds = Math.round((Date.now() - started) / 1000);
-      if (seconds >= 5) bubble.textContent = `Thinking… ${seconds}s (local models can be slow on a CPU)`;
+      if (seconds >= 5) note.textContent = `${seconds}s · local models can be slow on a CPU`;
     }, 1000);
     return () => {
       clearInterval(timer);
@@ -52,7 +79,7 @@
     el("pending-title").textContent =
       pending.action === "cancel" ? "Confirm cancellation" : "Confirm booking";
     const rows = [
-      ["Doctor", `${pending.doctor} (${pending.specialty})`],
+      ["Doctor", `${pending.doctor} · ${pending.specialty}`],
       ["Date", pending.date_label || pending.date],
       ["Time", `${pending.start} – ${pending.end}`],
       ["Patient", pending.patient_name],
@@ -62,9 +89,10 @@
     details.replaceChildren();
     for (const [label, value] of rows) {
       const dt = document.createElement("dt");
-      dt.className = "font-medium";
+      dt.className = "text-slate-500";
       dt.textContent = label;
       const dd = document.createElement("dd");
+      dd.className = "font-medium text-slate-900";
       dd.textContent = value;
       details.append(dt, dd);
     }
@@ -148,13 +176,20 @@
     try {
       const response = await fetch("/api/assistant/status");
       const status = await response.json();
-      if (statusDot) statusDot.className = `h-2 w-2 rounded-full ${status.ready ? "bg-emerald-500" : "bg-amber-500"}`;
+      statusDot.classList.remove("bg-slate-300", "bg-emerald-400", "bg-amber-400");
+      statusDot.classList.add(status.ready ? "bg-emerald-400" : "bg-amber-400");
+      el("status-text").textContent = status.ready
+        ? `Online · ${status.provider}`
+        : status.provider
+          ? `Offline · ${status.provider}`
+          : "Not configured";
       if (!status.ready && status.message) {
-        banner.textContent = status.message;
+        el("status-message").textContent = status.message;
         banner.classList.remove("hidden");
+        banner.classList.add("flex");
       }
     } catch {
-      /* the chat itself reports errors */
+      el("status-text").textContent = "Status unknown";
     }
   }
 

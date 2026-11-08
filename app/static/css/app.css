@@ -2,10 +2,76 @@
 
 body {
     font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "cv11", "ss01";
+}
+
+/* Soft coloured glow behind the page content. */
+.page-glow {
+    background:
+        radial-gradient(40rem 22rem at 12% -6rem, rgba(99, 102, 241, 0.16), transparent 70%),
+        radial-gradient(36rem 20rem at 88% -4rem, rgba(14, 165, 233, 0.14), transparent 70%),
+        radial-gradient(30rem 18rem at 50% 4rem, rgba(236, 72, 153, 0.07), transparent 70%);
+}
+
+/* Decorative pattern on the hero banners. */
+.hero-pattern {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+    background-size: 18px 18px;
 }
 
 /* Keep native date/time pickers readable in all browsers. */
 input[type="date"],
 input[type="time"] {
-    min-height: 2.5rem;
+    min-height: 2.25rem;
+}
+
+/* Occupancy bar under the day statistics. */
+progress.occupancy {
+    appearance: none;
+    border: 0;
+    border-radius: 9999px;
+    overflow: hidden;
+    background-color: #e0e7ff;
+}
+progress.occupancy::-webkit-progress-bar {
+    background-color: #e0e7ff;
+}
+progress.occupancy::-webkit-progress-value {
+    background-image: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    border-radius: 9999px;
+}
+progress.occupancy::-moz-progress-bar {
+    background-image: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    border-radius: 9999px;
+}
+
+/* Entrance animations. */
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop {
+    0% { opacity: 0; transform: scale(0.97); }
+    100% { opacity: 1; transform: scale(1); }
+}
+.animate-fade-up { animation: fade-up 0.5s ease-out both; }
+.animate-pop { animation: pop 0.3s ease-out both; }
+.delay-1 { animation-delay: 0.06s; }
+.delay-2 { animation-delay: 0.12s; }
+.delay-3 { animation-delay: 0.18s; }
+
+/* Typing indicator dots in the assistant chat. */
+@keyframes typing-dot {
+    0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
+}
+.typing-dot {
+    animation: typing-dot 1.2s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-fade-up, .animate-pop { animation: none; }
+    .typing-dot { animation: none; opacity: 0.6; }
 }

@@ -1,37 +1,51 @@
+{% import "_ui.html" as ui %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ClinicBook: clinic appointment booking with a local AI assistant.">
     <title>{% block title %}ClinicBook{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', path='img/logo.svg') }}" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11"></script>
     <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-800 antialiased">
-    <header class="bg-slate-900 text-white">
-        <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-            <a href="/" class="flex items-center gap-2 text-lg font-semibold tracking-tight">
-                <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold">CB</span>
-                ClinicBook
+<body class="relative flex min-h-full flex-col bg-slate-50 text-slate-800 antialiased">
+    <div class="page-glow pointer-events-none absolute inset-x-0 top-0 -z-0 h-[32rem]" aria-hidden="true"></div>
+    {% set path = request.url.path %}
+    <header class="sticky top-0 z-20 border-b border-white/60 bg-white/70 shadow-sm shadow-slate-900/5 backdrop-blur-lg">
+        <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+            <a href="/" class="flex items-center gap-3">
+                <img src="{{ url_for('static', path='img/logo.svg') }}" alt="" class="h-9 w-9">
+                <span class="leading-tight">
+                    <span class="block text-base font-semibold tracking-tight text-slate-900">ClinicBook</span>
+                    <span class="hidden text-xs text-slate-500 sm:block">Appointments &amp; AI booking</span>
+                </span>
             </a>
-            <nav class="flex items-center gap-1 text-sm">
-                {% set nav_cls = "rounded-md px-3 py-2 font-medium text-slate-300 hover:bg-slate-800 hover:text-white" %}
-                {% set active_cls = "rounded-md bg-slate-800 px-3 py-2 font-medium text-white" %}
-                <a href="/" class="{{ active_cls if request.url.path == '/' else nav_cls }}">Dashboard</a>
-                <a href="/assistant" class="{{ active_cls if request.url.path == '/assistant' else nav_cls }}">AI Assistant</a>
+            <nav class="flex items-center gap-1 text-sm" aria-label="Main">
+                {% for href, label, icon_name in [("/", "Dashboard", "grid"), ("/assistant", "AI Assistant", "sparkles")] %}
+                <a href="{{ href }}" {% if path == href %}aria-current="page"{% endif %}
+                   class="inline-flex items-center gap-2 rounded-lg px-3 py-2 font-medium transition {{ 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/25' if path == href else 'text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-sm' }}">
+                    {{ ui.icon(icon_name, "h-5 w-5") }}
+                    <span class="sr-only sm:not-sr-only">{{ label }}</span>
+                </a>
+                {% endfor %}
             </nav>
         </div>
     </header>
 
-    <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <main class="relative mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="mx-auto max-w-6xl px-4 pb-8 text-xs text-slate-400 sm:px-6">
-        Built with FastAPI, SQLAlchemy, Jinja2 and a local LLM (Ollama).
+    <footer class="relative border-t border-slate-200 bg-white/80">
+        <div class="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-5 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <p>&copy; ClinicBook. A portfolio project.</p>
+            <p>FastAPI · SQLAlchemy · Jinja2 · Tailwind CSS · Ollama</p>
+        </div>
     </footer>
     {% block scripts %}{% endblock %}
 </body>

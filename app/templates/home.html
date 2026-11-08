@@ -1,37 +1,104 @@
 {% extends "base.html" %}
+{% import "_ui.html" as ui %}
 
 {% block title %}Dashboard · ClinicBook{% endblock %}
 
 {% block content %}
-{% set label_cls = "mb-1 block text-sm font-medium text-slate-700" %}
-{% set input_cls = "block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30" %}
-{% set card_cls = "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" %}
+{% set label_cls = "mb-1.5 block text-sm font-medium text-slate-700" %}
+{% set input_cls = "block w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm ring-1 ring-slate-200 ring-inset placeholder:text-slate-400 transition focus:ring-2 focus:ring-indigo-500 focus:outline-none" %}
+{% set card_cls = "rounded-3xl border border-white bg-white/90 shadow-xl shadow-slate-900/5 ring-1 ring-slate-900/5 backdrop-blur" %}
+{% set primary_btn = "inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2" %}
 
-<div class="mb-8">
-    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Appointment dashboard</h1>
-    <p class="mt-1 text-sm text-slate-500">Create a doctor's schedule, then book or cancel appointments.</p>
-</div>
+<!-- Hero -->
+<section class="animate-fade-up relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 px-6 py-8 text-white shadow-2xl shadow-indigo-600/25 sm:px-10 sm:py-10">
+    <div class="hero-pattern absolute inset-0 opacity-60" aria-hidden="true"></div>
+    <div class="absolute -top-20 -right-16 h-64 w-64 rounded-full bg-fuchsia-400/30 blur-3xl" aria-hidden="true"></div>
+    <div class="absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-sky-300/30 blur-3xl" aria-hidden="true"></div>
 
-{% if error_message %}
-<div role="alert" class="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-    <span aria-hidden="true" class="font-bold">!</span>
-    <p>{{ error_message }}</p>
-</div>
-{% endif %}
-{% if success_message %}
-<div role="status" class="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-    <span aria-hidden="true" class="font-bold">✓</span>
-    <p>{{ success_message }}</p>
-</div>
-{% endif %}
+    <div class="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+            <p class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium ring-1 ring-white/25 backdrop-blur">
+                {{ ui.icon("calendar", "h-4 w-4") }} {{ selected_date.strftime('%A, %d %B %Y') }}
+            </p>
+            <h1 class="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Welcome back 👋</h1>
+            <p class="mt-2 max-w-lg text-base text-indigo-100">
+                {% if day_total %}
+                {{ day_total - day_free }} booked and <span class="font-semibold text-white">{{ day_free }} free {{ "slot" if day_free == 1 else "slots" }}</span> across all doctors on this day.
+                {% else %}
+                No schedules for this day yet. Create one below to start taking bookings.
+                {% endif %}
+            </p>
+            <div class="mt-6 flex flex-wrap gap-3">
+                <a href="/assistant" class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 shadow-lg shadow-indigo-900/20 transition hover:-translate-y-0.5 hover:shadow-xl">
+                    {{ ui.icon("sparkles", "h-4 w-4") }} Book with the AI assistant
+                </a>
+                <a href="#schedule" class="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white ring-1 ring-white/30 backdrop-blur transition hover:bg-white/20">
+                    {{ ui.icon("plus", "h-4 w-4") }} New schedule
+                </a>
+            </div>
+        </div>
+
+        <dl class="grid grid-cols-3 gap-3 sm:gap-4 lg:w-[26rem]">
+            {% for label, value in [("Doctors", doctors | length), ("Slots", day_total), ("Free", day_free)] %}
+            <div class="rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/20 backdrop-blur">
+                <dt class="text-xs font-medium text-indigo-100">{{ label }}</dt>
+                <dd class="mt-1 text-2xl font-bold tracking-tight">{{ value }}</dd>
+            </div>
+            {% endfor %}
+        </dl>
+    </div>
+</section>
+
+{% if error_message %}{{ ui.alert("error", error_message) }}{% endif %}
+{% if success_message %}{{ ui.alert("success", success_message) }}{% endif %}
+
+<!-- Doctors -->
+<section aria-labelledby="doctors-heading" class="animate-fade-up delay-1 mb-8">
+    <div class="mb-4 flex items-end justify-between">
+        <div>
+            <h2 id="doctors-heading" class="text-lg font-semibold tracking-tight text-slate-900">Our doctors</h2>
+            <p class="text-sm text-slate-500">Pick a doctor to see their day.</p>
+        </div>
+    </div>
+    <ul class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {% for doc in doctors %}
+        {% set active = selected_doctor and selected_doctor.id == doc.id %}
+        {% set t = SPECIALTY_THEMES.get(doc.specialty, DEFAULT_THEME) %}
+        {% set stats = day_stats[doc.id] %}
+        <li>
+            <a href="{{ doctor_urls[doc.id] }}" {% if active %}aria-current="true"{% endif %}
+               class="group relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl bg-white p-4 shadow-md shadow-slate-900/5 ring-1 transition duration-200 hover:-translate-y-1 hover:shadow-xl {{ 'ring-2 ring-indigo-500' if active else 'ring-slate-900/5' }}">
+                <span class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r {{ t.avatar }} opacity-80" aria-hidden="true"></span>
+                <div class="flex items-center justify-between">
+                    {{ ui.doctor_avatar(doc) }}
+                    <span class="text-xl" aria-hidden="true">{{ t.emoji }}</span>
+                </div>
+                <div class="min-w-0">
+                    <p class="truncate text-sm font-semibold text-slate-900">{{ doc.name }}</p>
+                    <p class="truncate text-xs font-medium {{ t.text }}">{{ doc.specialty }}</p>
+                </div>
+                <p class="mt-auto inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium {{ 'bg-emerald-50 text-emerald-700' if stats.free else 'bg-slate-100 text-slate-500' }}">
+                    <span class="h-1.5 w-1.5 rounded-full {{ 'bg-emerald-500' if stats.free else 'bg-slate-400' }}"></span>
+                    {% if stats.total %}{{ stats.free }} of {{ stats.total }} free{% else %}No schedule{% endif %}
+                </p>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
 
 <div class="grid gap-6 lg:grid-cols-3">
     <!-- Schedule setup -->
-    <section class="{{ card_cls }} lg:col-span-1 self-start">
-        <h2 class="text-base font-semibold text-slate-900">Create schedule</h2>
-        <p class="mt-1 mb-5 text-sm text-slate-500">Slots that already exist are skipped automatically.</p>
+    <section id="schedule" class="{{ card_cls }} animate-fade-up delay-2 order-last scroll-mt-24 self-start p-6 lg:order-none lg:col-span-1" aria-labelledby="schedule-heading">
+        <div class="flex items-center gap-3">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30">{{ ui.icon("calendar", "h-5 w-5") }}</span>
+            <div>
+                <h2 id="schedule-heading" class="text-base font-semibold text-slate-900">Create schedule</h2>
+                <p class="text-xs text-slate-500">Existing slots are skipped automatically.</p>
+            </div>
+        </div>
 
-        <form action="/generate-schedule" method="post" class="space-y-4">
+        <form action="/generate-schedule" method="post" class="mt-6 space-y-4">
             <div>
                 <label for="gen-doctor" class="{{ label_cls }}">Doctor</label>
                 <select id="gen-doctor" name="doctor_id" required class="{{ input_cls }}">
@@ -41,12 +108,10 @@
                     {% endfor %}
                 </select>
             </div>
-
             <div>
                 <label for="gen-date" class="{{ label_cls }}">Date</label>
-                <input id="gen-date" type="date" name="date" value="{{ selected_date.isoformat() }}" min="{{ min_date.isoformat() }}" required class="{{ input_cls }}">
+                <input id="gen-date" type="date" name="date" value="{{ selected_date.isoformat() }}" min="{{ today.isoformat() }}" required class="{{ input_cls }}">
             </div>
-
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label for="gen-start" class="{{ label_cls }}">Start</label>
@@ -57,107 +122,129 @@
                     <input id="gen-end" type="time" name="end_time" value="13:00" required class="{{ input_cls }}">
                 </div>
             </div>
-
             <div>
-                <label for="gen-duration" class="{{ label_cls }}">Slot length (minutes)</label>
-                <input id="gen-duration" type="number" name="slot_duration" value="30" min="1" max="240" step="1" required class="{{ input_cls }}">
+                <label for="gen-duration" class="{{ label_cls }}">Slot length</label>
+                <div class="relative">
+                    <input id="gen-duration" type="number" name="slot_duration" value="30" min="1" max="240" step="1" required class="{{ input_cls }} pr-16">
+                    <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-slate-400">minutes</span>
+                </div>
             </div>
-
-            <button type="submit" class="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
-                Generate time slots
+            <button type="submit" class="{{ primary_btn }} w-full">
+                {{ ui.icon("plus", "h-4 w-4") }} Generate time slots
             </button>
         </form>
     </section>
 
-    <!-- Appointments -->
-    <section class="{{ card_cls }} lg:col-span-2">
-        <div class="flex flex-col gap-4">
-            <div>
-                <h2 class="text-base font-semibold text-slate-900">Appointments</h2>
-                <p class="mt-1 text-sm text-slate-500">
-                    {% if selected_doctor %}{{ selected_doctor.display_name }} · {{ selected_date.strftime('%A, %d %B %Y') }}{% else %}Choose a doctor to see their slots.{% endif %}
-                </p>
+    <!-- Day view -->
+    <section class="{{ card_cls }} animate-fade-up delay-3 overflow-hidden lg:col-span-2" aria-labelledby="day-heading">
+        <div class="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3">
+                {% if selected_doctor %}{{ ui.doctor_avatar(selected_doctor) }}{% else %}
+                <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">{{ ui.icon("user", "h-5 w-5") }}</span>{% endif %}
+                <div>
+                    <h2 id="day-heading" class="text-base font-semibold text-slate-900">
+                        {{ selected_doctor.name if selected_doctor else "Daily schedule" }}
+                    </h2>
+                    <p class="text-sm text-slate-500">
+                        {% if selected_doctor %}{{ selected_doctor.specialty }} · {% endif %}{{ selected_date.strftime('%A, %d %B') }}
+                    </p>
+                </div>
             </div>
 
-            <form action="/" method="get" class="flex flex-wrap items-end gap-2 rounded-xl bg-slate-50 p-3">
-                <div class="min-w-48 flex-1">
-                    <label for="view-doctor" class="sr-only">Doctor</label>
-                    <select id="view-doctor" name="doctor_id" class="{{ input_cls }}">
-                        <option value="">Choose a doctor</option>
-                        {% for doc in doctors %}
-                        <option value="{{ doc.id }}" {% if selected_doctor and selected_doctor.id == doc.id %}selected{% endif %}>{{ doc.display_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label for="view-date" class="sr-only">Date</label>
-                    <input id="view-date" type="date" name="date" value="{{ selected_date.isoformat() }}" class="{{ input_cls }}">
-                </div>
-                <button type="submit" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">
-                    View
-                </button>
+            <form action="/" method="get" class="flex items-center gap-1.5 rounded-2xl bg-slate-100/80 p-1">
+                {% if selected_doctor %}<input type="hidden" name="doctor_id" value="{{ selected_doctor.id }}">{% endif %}
+                {% if prev_url %}
+                <a href="{{ prev_url }}" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white hover:text-slate-900 hover:shadow-sm" aria-label="Previous day">
+                    {{ ui.icon("chevron-left", "h-4 w-4") }}
+                </a>
+                {% endif %}
+                <label for="view-date" class="sr-only">Date</label>
+                <input id="view-date" type="date" name="date" value="{{ selected_date.isoformat() }}" onchange="this.form.submit()"
+                       class="h-8 rounded-xl border-0 bg-white px-2.5 text-sm text-slate-700 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                {% if next_url %}
+                <a href="{{ next_url }}" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white hover:text-slate-900 hover:shadow-sm" aria-label="Next day">
+                    {{ ui.icon("chevron-right", "h-4 w-4") }}
+                </a>
+                {% endif %}
+                {% if today_url %}
+                <a href="{{ today_url }}" class="rounded-xl px-2.5 py-1.5 text-sm font-semibold text-indigo-600 transition hover:bg-white hover:shadow-sm">Today</a>
+                {% endif %}
+                <noscript><button type="submit" class="rounded-xl px-2.5 py-1.5 text-sm font-medium text-indigo-600">Go</button></noscript>
             </form>
         </div>
 
         {% if appointments %}
+        {% set total = appointments | length %}
         {% set booked = appointments | selectattr('is_booked') | list | length %}
-        <dl class="mt-6 grid grid-cols-3 gap-3 text-center">
-            <div class="rounded-xl bg-slate-50 px-3 py-3">
-                <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">Total</dt>
-                <dd class="mt-1 text-xl font-semibold text-slate-900">{{ appointments | length }}</dd>
+        <dl class="grid grid-cols-3 gap-3 px-6">
+            {% for label, value, icon_name, tone in [
+                ("Total slots", total, "clock", "bg-blue-50 text-blue-600"),
+                ("Free", total - booked, "check-circle", "bg-emerald-50 text-emerald-600"),
+                ("Booked", booked, "user", "bg-violet-50 text-violet-600"),
+            ] %}
+            <div class="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 sm:p-4">
+                <span class="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:inline-flex {{ tone }}">{{ ui.icon(icon_name, "h-5 w-5") }}</span>
+                <div>
+                    <dt class="text-xs font-medium text-slate-500">{{ label }}</dt>
+                    <dd class="text-xl font-bold tracking-tight text-slate-900">{{ value }}</dd>
+                </div>
             </div>
-            <div class="rounded-xl bg-emerald-50 px-3 py-3">
-                <dt class="text-xs font-medium uppercase tracking-wide text-emerald-700">Available</dt>
-                <dd class="mt-1 text-xl font-semibold text-emerald-700">{{ appointments | length - booked }}</dd>
-            </div>
-            <div class="rounded-xl bg-rose-50 px-3 py-3">
-                <dt class="text-xs font-medium uppercase tracking-wide text-rose-700">Booked</dt>
-                <dd class="mt-1 text-xl font-semibold text-rose-700">{{ booked }}</dd>
-            </div>
+            {% endfor %}
         </dl>
+        <div class="flex items-center gap-3 px-6 pt-4 pb-2">
+            <progress value="{{ booked }}" max="{{ total }}" class="occupancy block h-2 flex-1" aria-label="Occupancy"></progress>
+            <span class="text-xs font-semibold text-slate-600">{{ (booked * 100 / total) | round | int }}% full</span>
+        </div>
 
-        <ul class="mt-6 grid gap-4 sm:grid-cols-2">
+        <ul class="space-y-2 p-4 sm:p-6 sm:pt-3">
             {% for slot in appointments %}
-            <li class="rounded-xl border p-4 {% if slot.is_booked %}border-rose-200 bg-rose-50/40{% else %}border-slate-200 bg-white{% endif %}">
-                <div class="flex items-center justify-between">
-                    <p class="text-sm font-semibold text-slate-900">{{ slot.time_range }}</p>
+            <li class="relative flex flex-col gap-3 overflow-hidden rounded-2xl p-4 pl-5 ring-1 transition sm:flex-row sm:items-center {{ 'bg-violet-50/40 ring-violet-100' if slot.is_booked else 'bg-white ring-slate-200 hover:shadow-md hover:ring-emerald-200' }}">
+                <span class="absolute inset-y-0 left-0 w-1 {{ 'bg-gradient-to-b from-violet-500 to-indigo-500' if slot.is_booked else 'bg-gradient-to-b from-emerald-400 to-teal-500' }}" aria-hidden="true"></span>
+                <div class="flex items-center gap-3 sm:w-56 sm:shrink-0">
+                    <span class="text-sm font-bold tabular-nums text-slate-900">{{ slot.start_time.strftime('%H:%M') }}<span class="font-medium text-slate-400"> – {{ slot.end_time.strftime('%H:%M') }}</span></span>
                     {% if slot.is_booked %}
-                    <span class="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-700">Booked</span>
+                    <span class="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">Booked</span>
                     {% else %}
-                    <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">Available</span>
+                    <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">Available</span>
                     {% endif %}
                 </div>
 
                 {% if slot.is_booked %}
-                <p class="mt-3 text-sm text-slate-600">Patient: <span class="font-medium text-slate-900">{{ slot.patient_name }}</span></p>
-                {% if slot.phone_number %}<p class="mt-1 text-sm text-slate-600">Phone: <span class="font-medium text-slate-900">{{ slot.phone_number }}</span></p>{% endif %}
-                <form action="/cancel-slot/{{ slot.id }}" method="post" class="mt-3">
-                    <button type="submit" class="w-full rounded-lg border border-rose-300 bg-white px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-50">
-                        Cancel booking
+                <div class="flex min-w-0 flex-1 items-center gap-3">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 text-sm font-semibold text-white">{{ (slot.patient_name or "?")[:1] | upper }}</span>
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold text-slate-900">{{ slot.patient_name }}</p>
+                        {% if slot.phone_number %}<p class="inline-flex items-center gap-1 text-xs tabular-nums text-slate-500">{{ ui.icon("phone", "h-3.5 w-3.5") }}{{ slot.phone_number }}</p>{% endif %}
+                    </div>
+                </div>
+                <form action="/cancel-slot/{{ slot.id }}" method="post">
+                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-white px-3 py-1.5 text-sm font-medium text-rose-600 shadow-sm ring-1 ring-rose-200 transition hover:bg-rose-50">
+                        {{ ui.icon("x-mark", "h-4 w-4") }} Cancel
                     </button>
                 </form>
                 {% else %}
-                <form action="/book-slot/{{ slot.id }}" method="post" class="mt-3 space-y-2">
+                <form action="/book-slot/{{ slot.id }}" method="post" class="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
                     <label for="name-{{ slot.id }}" class="sr-only">Patient name</label>
-                    <input id="name-{{ slot.id }}" type="text" name="patient_name" placeholder="Patient name" maxlength="100" required autocomplete="name" class="{{ input_cls }}">
-                    <div class="flex gap-2">
-                        <label for="phone-{{ slot.id }}" class="sr-only">Phone number</label>
-                        <input id="phone-{{ slot.id }}" type="tel" name="phone_number" placeholder="Phone number" maxlength="20" required autocomplete="tel" class="{{ input_cls }}">
-                        <button type="submit" class="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-                            Book
-                        </button>
-                    </div>
+                    <input id="name-{{ slot.id }}" type="text" name="patient_name" placeholder="Patient name" maxlength="100" required autocomplete="name" class="{{ input_cls }} py-1.5">
+                    <label for="phone-{{ slot.id }}" class="sr-only">Phone number</label>
+                    <input id="phone-{{ slot.id }}" type="tel" name="phone_number" placeholder="Phone number" maxlength="20" required autocomplete="tel" class="{{ input_cls }} py-1.5">
+                    <button type="submit" class="rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-1.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/25 transition hover:-translate-y-0.5 hover:shadow-lg">Book</button>
                 </form>
                 {% endif %}
             </li>
             {% endfor %}
         </ul>
         {% else %}
-        <div class="mt-6 rounded-xl border border-dashed border-slate-300 px-6 py-12 text-center">
-            <p class="text-sm font-medium text-slate-700">No slots to show</p>
-            <p class="mt-1 text-sm text-slate-500">
-                {% if selected_doctor %}There are no slots for this doctor on this day. Create a schedule to add some.{% else %}Choose a doctor and date above, or create a schedule.{% endif %}
-            </p>
+        <div class="flex flex-col items-center px-6 pt-6 pb-16 text-center">
+            <span class="inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-100 to-sky-100 text-3xl" aria-hidden="true">{{ "🗓️" if selected_doctor else "👩‍⚕️" }}</span>
+            {% if selected_doctor %}
+            <p class="mt-4 text-base font-semibold text-slate-900">No slots on this day</p>
+            <p class="mt-1 max-w-sm text-sm text-slate-500">{{ selected_doctor.name }} has no schedule for {{ selected_date.strftime('%A, %d %B') }} yet.</p>
+            <a href="#schedule" class="{{ primary_btn }} mt-5">{{ ui.icon("plus", "h-4 w-4") }} Create a schedule</a>
+            {% else %}
+            <p class="mt-4 text-base font-semibold text-slate-900">Select a doctor</p>
+            <p class="mt-1 max-w-sm text-sm text-slate-500">Choose one of our doctors above to see their slots for the day.</p>
+            {% endif %}
         </div>
         {% endif %}
     </section>

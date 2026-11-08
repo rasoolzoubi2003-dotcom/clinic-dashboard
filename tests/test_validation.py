@@ -132,3 +132,21 @@ def test_unknown_error_code_shows_generic_text(client):
     response = client.get("/", params={"error": "<script>alert(1)</script>"})
     assert "Something went wrong" in response.text
     assert "<script>alert(1)</script>" not in response.text
+
+
+@pytest.mark.parametrize("day", ["0001-01-01", "9999-12-31"])
+def test_dates_at_the_edge_of_the_range_render(client, day):
+    response = client.get("/", params={"date": day, "doctor_id": "1"})
+    assert response.status_code == 200
+
+
+def test_day_navigation_links_keep_the_doctor(client):
+    response = client.get("/", params={"date": "2030-01-05", "doctor_id": "2"})
+    for day in ("2030-01-04", "2030-01-05", "2030-01-06"):
+        assert f'href="/?doctor_id=2&amp;date={day}"' in response.text
+
+
+def test_nav_labels_stay_available_to_screen_readers(client):
+    response = client.get("/")
+    assert '<span class="sr-only sm:not-sr-only">Dashboard</span>' in response.text
+    assert '<span class="sr-only sm:not-sr-only">AI Assistant</span>' in response.text
