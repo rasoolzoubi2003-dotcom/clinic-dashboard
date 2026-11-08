@@ -72,7 +72,7 @@ class PendingAction:
             self.kind == kind
             and self.slot_id == slot_id
             and self.patient_name.casefold() == patient_name.casefold()
-            and self.phone_number == phone_number
+            and services.phone_key(self.phone_number) == services.phone_key(phone_number)
         )
 
     def to_public(self) -> dict:
@@ -152,7 +152,10 @@ class CancelBookingArgs(_PatientArgs):
 
 _PATIENT_PROPS = {
     "patient_name": {"type": "string", "description": "Patient's full name, as the patient wrote it."},
-    "phone_number": {"type": "string", "description": "Patient's phone number, digits only if possible."},
+    "phone_number": {
+        "type": "string",
+        "description": "Patient's phone number exactly as they wrote it, as a string. Keep any leading 0 or +.",
+    },
 }
 
 TOOL_SPECS: list[ToolSpec] = [

@@ -172,6 +172,15 @@ def _same_name(patient_name: str):
     return func.lower(Appointment.patient_name) == patient_name.lower()
 
 
+def phone_key(phone: str | None) -> str:
+    """Digits without leading zeros, used to compare phone numbers.
+
+    "0791234567" and "791234567" are treated as the same number: small LLMs often
+    drop the leading zero when they pass a phone number to a tool.
+    """
+    return "".join(ch for ch in phone or "" if ch.isdigit()).lstrip("0")
+
+
 def _names_match(stored: str | None, given: str) -> bool:
     """Unicode-aware, case-insensitive name comparison (SQLite's lower() is ASCII-only)."""
     return stored is not None and stored.casefold() == given.casefold()
@@ -240,7 +249,7 @@ def find_patient_bookings(db: Session, patient_name: str, phone_number: str) -> 
         .options(joinedload(Appointment.doctor))
         .where(
             Appointment.is_booked.is_(True),
-            Appointment.phone_number == phone_number,
+            Appointment.phone_number.endswith(phone_key(phone_number)),  # narrowed in Python below
             Appointment.date >= current.date(),
         )
         .order_by(Appointment.date, Appointment.start_time)
@@ -248,7 +257,9 @@ def find_patient_bookings(db: Session, patient_name: str, phone_number: str) -> 
     return [
         s
         for s in db.scalars(query)
-        if _names_match(s.patient_name, patient_name) and datetime.combine(s.date, s.start_time) > current
+        if _names_match(s.patient_name, patient_name)
+        and phone_key(s.phone_number) == phone_key(phone_number)
+        and datetime.combine(s.date, s.start_time) > current
     ]
 
 
@@ -259,7 +270,7 @@ def get_patient_booking(db: Session, slot_id: int, patient_name: str, phone_numb
         slot is None
         or not slot.is_booked
         or not _names_match(slot.patient_name, patient_name)
-        or slot.phone_number != phone_number
+        or phone_key(slot.phone_number) != phone_key(phone_number)
     ):
         raise BookingNotFound()
     return slot

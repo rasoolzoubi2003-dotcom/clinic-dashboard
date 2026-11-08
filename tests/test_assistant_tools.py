@@ -352,3 +352,16 @@ def test_cannot_cancel_someone_elses_booking(run, db, state, bookings, name, pho
     assert "Omar" not in json.dumps(data)
     db.refresh(omar)
     assert omar.is_booked
+
+
+def test_find_and_cancel_when_model_drops_the_leading_zero(run, db, state, bookings):
+    lina, _ = bookings
+    data, _ = run("find_bookings", {"patient_name": "Lina Haddad", "phone_number": 791234567})  # a number, no 0
+    assert [b["slot_id"] for b in data["bookings"]] == [lina.id]
+
+    args = {"slot_id": lina.id, "patient_name": "Lina Haddad", "phone_number": "791234567"}
+    run("cancel_booking", args)
+    state.user_turn += 1
+    # The confirmation may come back with the zero restored: still the same action.
+    data, error = run("cancel_booking", {**args, "phone_number": "0791234567"})
+    assert error is None and data["status"] == "cancelled"

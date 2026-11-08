@@ -121,3 +121,19 @@ def test_dashboard_booking_requires_phone(client, db, doctor, future_day):
     response = client.post(f"/book-slot/{slot.id}", data={"patient_name": "Lina", "phone_number": "079-123-4567"})
     assert "Appointment booked." in response.text
     assert "0791234567" in response.text
+
+
+def test_leading_zero_dropped_by_the_model_still_matches(db, booked):
+    found = services.find_patient_bookings(db, "Lina Haddad", "791234567")
+    assert [s.id for s in found] == [booked["lina"].id, booked["lina_2"].id]
+
+    services.cancel_patient_booking(db, booked["lina"].id, "Lina Haddad", "791234567")
+    db.refresh(booked["lina"])
+    assert not booked["lina"].is_booked
+
+
+@pytest.mark.parametrize("phone", ["1791234567", "91234567", "0791234568"])
+def test_similar_but_different_phone_numbers_do_not_match(db, booked, phone):
+    assert services.find_patient_bookings(db, "Lina Haddad", phone) == []
+    with pytest.raises(services.BookingNotFound):
+        services.cancel_patient_booking(db, booked["lina"].id, "Lina Haddad", phone)
