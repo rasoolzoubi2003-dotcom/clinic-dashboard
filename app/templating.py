@@ -28,10 +28,13 @@ ICON_PATHS = {
 }
 templates.env.globals["ICON_PATHS"] = ICON_PATHS
 
-# Accent colours per specialty, used for doctor avatars.
-templates.env.globals["SPECIALTY_COLORS"] = {
-    "Cardiology": "bg-rose-100 text-rose-700 ring-rose-200",
-    "Dermatology": "bg-amber-100 text-amber-700 ring-amber-200",
-    "Pediatrics": "bg-sky-100 text-sky-700 ring-sky-200",
-    "General Medicine": "bg-emerald-100 text-emerald-700 ring-emerald-200",
+# Colour theme per specialty: avatar gradient, soft background tint, and text colour.
+templates.env.globals["SPECIALTY_THEMES"] = {
+    "Cardiology": {"avatar": "from-rose-400 to-pink-600", "soft": "bg-rose-50", "text": "text-rose-600", "emoji": "❤️"},
+    "Dermatology": {"avatar": "from-amber-400 to-orange-500", "soft": "bg-amber-50", "text": "text-amber-600", "emoji": "✨"},
+    "Pediatrics": {"avatar": "from-sky-400 to-cyan-500", "soft": "bg-sky-50", "text": "text-sky-600", "emoji": "🧸"},
+    "General Medicine": {"avatar": "from-emerald-400 to-teal-500", "soft": "bg-emerald-50", "text": "text-emerald-600", "emoji": "🩺"},
+}
+templates.env.globals["DEFAULT_THEME"] = {
+    "avatar": "from-slate-400 to-slate-600", "soft": "bg-slate-50", "text": "text-slate-600", "emoji": "🏥"
 }

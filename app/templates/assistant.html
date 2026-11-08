@@ -4,101 +4,123 @@
 {% block title %}AI Assistant · ClinicBook{% endblock %}
 
 {% block content %}
-<div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-    <div>
-        <p class="text-sm font-medium text-blue-600">AI Assistant</p>
-        <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Book by chatting</h1>
-        <p class="mt-1 max-w-xl text-sm text-slate-500">Describe what you need in plain English. The assistant checks real availability and always asks before booking.</p>
+<!-- Hero -->
+<section class="animate-fade-up relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 px-6 py-8 text-white shadow-2xl shadow-violet-600/25 sm:px-10">
+    <div class="hero-pattern absolute inset-0 opacity-60" aria-hidden="true"></div>
+    <div class="absolute -top-16 -right-10 h-56 w-56 rounded-full bg-sky-300/30 blur-3xl" aria-hidden="true"></div>
+    <div class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium ring-1 ring-white/25 backdrop-blur">
+                {{ ui.icon("sparkles", "h-4 w-4") }} AI Assistant
+            </p>
+            <h1 class="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Book by chatting 💬</h1>
+            <p class="mt-2 max-w-xl text-base text-violet-100">Tell me what you need in plain English. I check real availability and always ask before booking anything.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 sm:flex-col sm:items-end">
+            {% if provider_label %}
+            <span class="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium ring-1 ring-white/25 backdrop-blur">
+                {{ ui.icon("cpu", "h-4 w-4") }} {{ provider_label }}
+            </span>
+            {% endif %}
+            {% if is_local %}
+            <span class="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-emerald-400/20 px-3 py-1.5 text-xs font-medium text-emerald-50 ring-1 ring-emerald-300/40 backdrop-blur">
+                {{ ui.icon("lock", "h-4 w-4") }} 100% local &amp; private
+            </span>
+            {% endif %}
+        </div>
     </div>
-</div>
+</section>
 
-<div id="status-banner" role="status" class="mb-6 hidden items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
-    {{ ui.icon("alert", "mt-0.5 h-5 w-5 shrink-0 text-amber-500") }}
+<div id="status-banner" role="status" class="animate-pop mb-6 hidden items-start gap-3 rounded-2xl border border-amber-200 bg-white px-4 py-3.5 text-sm text-amber-900 shadow-lg shadow-amber-500/10">
+    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">{{ ui.icon("alert", "h-5 w-5") }}</span>
     <div>
-        <p class="font-semibold">The assistant isn't ready</p>
+        <p class="font-semibold">The assistant isn't ready yet</p>
         <p id="status-message" class="mt-0.5 text-amber-800"></p>
     </div>
 </div>
 
 <div class="grid gap-6 lg:grid-cols-3">
     <!-- Chat -->
-    <section class="flex flex-col self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-2" aria-label="Chat">
-        <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+    <section class="animate-fade-up delay-1 flex flex-col self-start overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/5 ring-1 ring-slate-900/5 lg:col-span-2" aria-label="Chat">
+        <div class="flex items-center justify-between gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3.5 text-white sm:px-5">
             <div class="flex min-w-0 items-center gap-3">
-                <span class="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-sm">
+                <span class="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/20 ring-1 ring-white/30">
                     {{ ui.icon("sparkles", "h-5 w-5") }}
-                    <span id="status-dot" class="absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full bg-slate-300 ring-2 ring-white"></span>
+                    <span id="status-dot" class="absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full bg-slate-300 ring-2 ring-indigo-600"></span>
                 </span>
                 <div class="min-w-0">
-                    <p class="text-sm font-semibold text-slate-900">Booking assistant</p>
-                    <p class="truncate text-xs text-slate-500">{{ provider_label or "Not configured" }}</p>
+                    <p class="text-sm font-semibold">Booking assistant</p>
+                    <p id="status-text" class="truncate text-xs text-blue-100">Checking connection…</p>
                 </div>
             </div>
-            <button id="reset" type="button" class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-900">
+            <button id="reset" type="button" class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-white/15 px-3 py-1.5 text-sm font-medium ring-1 ring-white/25 transition hover:bg-white/25">
                 {{ ui.icon("refresh", "h-4 w-4") }} New chat
             </button>
         </div>
 
-        <ol id="messages" aria-live="polite" class="flex h-[52vh] min-h-96 flex-col gap-4 overflow-y-auto bg-slate-50/50 px-4 py-5 sm:px-5">
+        <ol id="messages" aria-live="polite" class="flex h-[52vh] min-h-96 flex-col gap-4 overflow-y-auto bg-gradient-to-b from-indigo-50/40 to-white px-4 py-5 sm:px-5">
             <li class="flex items-end gap-2.5">
-                <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">{{ ui.icon("sparkles", "h-4 w-4") }}</span>
-                <div class="max-w-[85%] rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm">
-                    Hi! I can find a free time with one of our doctors, book it for you, or help you check or cancel a booking. What do you need?
+                <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-indigo-500/30">{{ ui.icon("sparkles", "h-4 w-4") }}</span>
+                <div class="max-w-[85%] rounded-2xl rounded-bl-md bg-white px-4 py-3 text-sm text-slate-800 shadow-md shadow-slate-900/5 ring-1 ring-slate-900/5">
+                    <p class="font-semibold text-slate-900">Hi there! 👋</p>
+                    <p class="mt-1">I can find a free time with one of our doctors, book it for you, or help you check or cancel a booking. What do you need?</p>
                 </div>
             </li>
         </ol>
 
-        <div id="pending" class="mx-4 mb-3 hidden overflow-hidden rounded-xl border border-blue-200 bg-white shadow-sm sm:mx-5">
-            <div class="flex items-center gap-2 border-b border-blue-100 bg-blue-50 px-4 py-2.5">
-                {{ ui.icon("shield", "h-5 w-5 text-blue-600") }}
-                <p id="pending-title" class="text-sm font-semibold text-blue-900"></p>
+        <div id="pending" class="animate-pop mx-4 mb-3 hidden overflow-hidden rounded-2xl bg-white shadow-lg shadow-indigo-500/10 ring-2 ring-indigo-200 sm:mx-5">
+            <div class="flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-violet-50 px-4 py-2.5">
+                <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-white">{{ ui.icon("shield", "h-4 w-4") }}</span>
+                <p id="pending-title" class="text-sm font-semibold text-indigo-900"></p>
             </div>
             <dl id="pending-details" class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 px-4 py-3 text-sm"></dl>
             <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
                 <p class="text-xs text-slate-500">Nothing changes until you confirm.</p>
                 <div class="flex gap-2">
-                    <button id="confirm-no" type="button" class="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 transition hover:bg-slate-50">Not now</button>
-                    <button id="confirm-yes" type="button" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">Confirm</button>
+                    <button id="confirm-no" type="button" class="rounded-xl px-3.5 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 transition hover:bg-slate-50">Not now</button>
+                    <button id="confirm-yes" type="button" class="rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:shadow-lg">Confirm ✓</button>
                 </div>
             </div>
         </div>
 
-        <div id="suggestions" class="flex flex-wrap gap-2 bg-slate-50/50 px-4 pb-4 sm:px-5">
-            {% for example in [
-                "I want an appointment with a dermatologist tomorrow morning",
-                "Is a heart doctor free on Sunday?",
-                "Which doctors do you have?",
-                "I need to cancel my appointment",
+        <div id="suggestions" class="grid grid-cols-1 gap-2 bg-white px-4 pb-4 sm:grid-cols-2 sm:px-5">
+            {% for emoji, label, message in [
+                ("✨", "Dermatologist tomorrow morning", "I want an appointment with a dermatologist tomorrow morning"),
+                ("❤️", "Heart doctor on Sunday", "Is a heart doctor free on Sunday?"),
+                ("👩‍⚕️", "Which doctors do you have?", "Which doctors do you have?"),
+                ("🗓️", "Cancel my appointment", "I need to cancel my appointment"),
             ] %}
-            <button type="button" data-suggestion="{{ example }}" class="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-blue-50 hover:text-blue-700 hover:ring-blue-200">{{ example }}</button>
+            <button type="button" data-suggestion="{{ message }}" class="group flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2.5 text-left text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:bg-white hover:text-indigo-700 hover:shadow-md hover:ring-indigo-200">
+                <span class="text-base" aria-hidden="true">{{ emoji }}</span>{{ label }}
+            </button>
             {% endfor %}
         </div>
 
-        <form id="chat-form" class="flex items-center gap-2 border-t border-slate-200 bg-white p-3 sm:p-4">
+        <form id="chat-form" class="flex items-center gap-2 border-t border-slate-100 bg-white p-3 sm:p-4">
             <label for="chat-input" class="sr-only">Message</label>
             <input id="chat-input" name="message" type="text" autocomplete="off" maxlength="{{ max_chars }}" required
                    placeholder="Type your message…"
-                   class="block w-full rounded-xl border-0 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 ring-inset placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none">
-            <button id="send" type="submit" aria-label="Send" class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                   class="block w-full rounded-2xl border-0 bg-slate-100 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <button id="send" type="submit" aria-label="Send" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0">
                 {{ ui.icon("send", "h-5 w-5") }}
             </button>
         </form>
     </section>
 
     <!-- Side panel -->
-    <aside class="space-y-6 self-start">
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 class="text-sm font-semibold text-slate-900">How it works</h2>
-            <ol class="mt-4 space-y-4">
-                {% for icon_name, title, text in [
-                    ("search", "Ask for a time", "Say which doctor or specialty you need and when."),
-                    ("calendar", "Pick a slot", "The assistant shows real free times from the schedule."),
-                    ("check-circle", "Confirm", "Give your name and phone, then confirm. Nothing is booked before that."),
+    <aside class="animate-fade-up delay-2 space-y-6 self-start">
+        <section class="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/5 ring-1 ring-slate-900/5">
+            <h2 class="text-base font-semibold text-slate-900">How it works</h2>
+            <ol class="mt-5 space-y-5">
+                {% for title, text, tone in [
+                    ("Ask for a time", "Say which doctor or specialty you need, and when.", "from-sky-400 to-blue-600"),
+                    ("Pick a slot", "I show you real free times from the clinic's schedule.", "from-violet-400 to-indigo-600"),
+                    ("Confirm", "Share your name and phone, then confirm. Nothing is booked before that.", "from-emerald-400 to-teal-600"),
                 ] %}
                 <li class="flex gap-3">
-                    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">{{ ui.icon(icon_name, "h-4 w-4") }}</span>
+                    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br {{ tone }} text-sm font-bold text-white shadow-md">{{ loop.index }}</span>
                     <div>
-                        <p class="text-sm font-medium text-slate-900">{{ title }}</p>
+                        <p class="text-sm font-semibold text-slate-900">{{ title }}</p>
                         <p class="text-sm text-slate-500">{{ text }}</p>
                     </div>
                 </li>
@@ -107,21 +129,22 @@
         </section>
 
         {% if is_local %}
-        <section class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
-            <div class="flex items-center gap-2 text-emerald-800">
+        <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-white shadow-xl shadow-emerald-600/20">
+            <div class="absolute -right-3 -bottom-5 text-6xl opacity-15" aria-hidden="true">🔒</div>
+            <div class="relative flex items-center gap-2">
                 {{ ui.icon("lock", "h-5 w-5") }}
-                <h2 class="text-sm font-semibold">Private by design</h2>
+                <h2 class="text-base font-semibold">Private by design</h2>
             </div>
-            <p class="mt-2 text-sm text-emerald-900/80">Runs on a local model: patient data never leaves this machine. No API keys, no per-message cost.</p>
+            <p class="relative mt-2 text-sm text-emerald-50">Runs on a local model: patient data never leaves this machine. No API keys, no per-message cost.</p>
         </section>
         {% endif %}
 
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section class="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/5 ring-1 ring-slate-900/5">
             <div class="flex items-center gap-2 text-slate-900">
-                {{ ui.icon("shield", "h-5 w-5 text-slate-500") }}
-                <h2 class="text-sm font-semibold">Your bookings are protected</h2>
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">{{ ui.icon("shield", "h-5 w-5") }}</span>
+                <h2 class="text-base font-semibold">Your bookings are protected</h2>
             </div>
-            <p class="mt-2 text-sm text-slate-500">Checking or cancelling a booking needs the same name <em>and</em> phone number used to book it.</p>
+            <p class="mt-3 text-sm text-slate-500">Checking or cancelling a booking needs the same name <em>and</em> phone number used to book it.</p>
         </section>
 
         <p class="px-1 text-xs text-slate-400">The assistant only handles appointments and can't give medical advice. In an emergency, call your local emergency number.</p>

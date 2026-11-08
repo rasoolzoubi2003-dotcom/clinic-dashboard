@@ -57,6 +57,12 @@ async def view_appointments(
     selected_doctor = next((d for d in doctors if d.id == selected_id), None)
     appointments = services.list_slots(db, selected_doctor.id, selected_date) if selected_doctor else []
 
+    # Per-doctor totals for the selected day, shown on the doctor cards and the summary banner.
+    day_stats = {}
+    for doctor in doctors:
+        slots = services.list_slots(db, doctor.id, selected_date)
+        day_stats[doctor.id] = {"total": len(slots), "free": sum(not s.is_booked for s in slots)}
+
     return templates.TemplateResponse(
         request=request,
         name="home.html",
@@ -67,6 +73,9 @@ async def view_appointments(
             "selected_date": selected_date,
             "min_date": today(),
             "today": today(),
+            "day_stats": day_stats,
+            "day_total": sum(s["total"] for s in day_stats.values()),
+            "day_free": sum(s["free"] for s in day_stats.values()),
             "prev_date": selected_date - dt.timedelta(days=1),
             "next_date": selected_date + dt.timedelta(days=1),
             "error_message": messages.error_message(error),

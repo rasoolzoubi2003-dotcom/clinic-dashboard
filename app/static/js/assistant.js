@@ -22,8 +22,12 @@
   function avatar(role, error) {
     const span = document.createElement("span");
     const tone =
-      role === "user" ? "bg-slate-800 text-white" : error ? "bg-red-100 text-red-600" : "bg-blue-600 text-white";
-    span.className = `inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${tone}`;
+      role === "user"
+        ? "bg-slate-800 text-white"
+        : error
+          ? "bg-rose-100 text-rose-600"
+          : "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-indigo-500/30";
+    span.className = `inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${tone}`;
     span.innerHTML = role === "user" ? USER : SPARKLES;
     return span;
   }
@@ -32,10 +36,11 @@
     const item = document.createElement("li");
     item.className = role === "user" ? "flex flex-row-reverse items-end gap-2.5" : "flex items-end gap-2.5";
     const bubble = document.createElement("div");
-    const base = "max-w-[85%] whitespace-pre-wrap px-4 py-2.5 text-sm shadow-sm";
-    if (role === "user") bubble.className = `${base} rounded-2xl rounded-br-md bg-blue-600 text-white`;
-    else if (error) bubble.className = `${base} rounded-2xl rounded-bl-md border border-red-200 bg-red-50 text-red-800`;
-    else bubble.className = `${base} rounded-2xl rounded-bl-md border border-slate-200 bg-white text-slate-800`;
+    const base = "animate-pop max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm";
+    if (role === "user")
+      bubble.className = `${base} rounded-br-md bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-indigo-500/25`;
+    else if (error) bubble.className = `${base} rounded-bl-md bg-rose-50 text-rose-800 ring-1 ring-rose-200`;
+    else bubble.className = `${base} rounded-bl-md bg-white text-slate-800 shadow-md shadow-slate-900/5 ring-1 ring-slate-900/5`;
     item.append(avatar(role, error), bubble);
     messages.appendChild(item);
     messages.scrollTop = messages.scrollHeight;
@@ -53,7 +58,7 @@
     dots.className = "flex items-center gap-1";
     for (let i = 0; i < 3; i++) {
       const dot = document.createElement("span");
-      dot.className = "typing-dot h-1.5 w-1.5 rounded-full bg-slate-400";
+      dot.className = "typing-dot h-2 w-2 rounded-full bg-indigo-400";
       dots.appendChild(dot);
     }
     const note = document.createElement("span");
@@ -176,14 +181,19 @@
     try {
       const response = await fetch("/api/assistant/status");
       const status = await response.json();
-      statusDot.className = statusDot.className.replace(/bg-\S+/, status.ready ? "bg-emerald-500" : "bg-amber-400");
+      statusDot.className = statusDot.className.replace(/bg-\S+/, status.ready ? "bg-emerald-400" : "bg-amber-400");
+      el("status-text").textContent = status.ready
+        ? `Online · ${status.provider}`
+        : status.provider
+          ? `Offline · ${status.provider}`
+          : "Not configured";
       if (!status.ready && status.message) {
         el("status-message").textContent = status.message;
         banner.classList.remove("hidden");
         banner.classList.add("flex");
       }
     } catch {
-      /* the chat itself reports errors */
+      el("status-text").textContent = "Status unknown";
     }
   }
 
