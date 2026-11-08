@@ -9,13 +9,13 @@
             <h1 class="text-2xl font-bold tracking-tight text-slate-900">AI booking assistant</h1>
             <p class="mt-1 text-sm text-slate-500">Ask for an appointment in plain English. The assistant checks real availability and always asks before booking.</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex shrink-0 items-center gap-2">
             {% if provider_label %}
-            <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600" title="Model in use">
+            <span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600" title="Model in use">
                 <span id="status-dot" class="h-2 w-2 rounded-full bg-slate-300"></span>{{ provider_label }}
             </span>
             {% endif %}
-            <button id="reset" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+            <button id="reset" type="button" class="whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
                 New conversation
             </button>
         </div>
