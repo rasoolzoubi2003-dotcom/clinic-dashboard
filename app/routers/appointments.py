@@ -66,6 +66,9 @@ async def view_appointments(
             "selected_doctor": selected_doctor,
             "selected_date": selected_date,
             "min_date": today(),
+            "today": today(),
+            "prev_date": selected_date - dt.timedelta(days=1),
+            "next_date": selected_date + dt.timedelta(days=1),
             "error_message": messages.error_message(error),
             "success_message": messages.success_message(
                 success, _parse_int(created) or 0, _parse_int(skipped) or 0

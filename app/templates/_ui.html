@@ -1,0 +1,24 @@
+{# Shared UI macros. Import with: {% import "_ui.html" as ui %} #}
+
+{% macro icon(name, cls="h-5 w-5") -%}
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="{{ cls }}" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="{{ ICON_PATHS[name] }}"/></svg>
+{%- endmacro %}
+
+{% macro doctor_avatar(doctor, size="h-10 w-10 text-sm") -%}
+{% set initial = doctor.name.replace("Dr. ", "")[:1] | upper %}
+<span class="inline-flex {{ size }} shrink-0 items-center justify-center rounded-full font-semibold ring-1 {{ SPECIALTY_COLORS.get(doctor.specialty, 'bg-slate-100 text-slate-700 ring-slate-200') }}">{{ initial }}</span>
+{%- endmacro %}
+
+{% macro alert(kind, text) -%}
+{% if kind == "error" %}
+<div role="alert" class="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-sm">
+    {{ icon("alert", "mt-0.5 h-5 w-5 shrink-0 text-red-500") }}
+    <p>{{ text }}</p>
+</div>
+{% else %}
+<div role="status" class="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-sm">
+    {{ icon("check-circle", "mt-0.5 h-5 w-5 shrink-0 text-emerald-500") }}
+    <p>{{ text }}</p>
+</div>
+{% endif %}
+{%- endmacro %}

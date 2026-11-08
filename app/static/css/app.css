@@ -2,10 +2,42 @@
 
 body {
     font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "cv11", "ss01";
 }
 
 /* Keep native date/time pickers readable in all browsers. */
 input[type="date"],
 input[type="time"] {
-    min-height: 2.5rem;
+    min-height: 2.25rem;
+}
+
+/* Occupancy bar under the day statistics. */
+progress.occupancy {
+    appearance: none;
+    border: 0;
+    background-color: #e2e8f0;
+}
+progress.occupancy::-webkit-progress-bar {
+    background-color: #e2e8f0;
+}
+progress.occupancy::-webkit-progress-value {
+    background-color: #2563eb;
+}
+progress.occupancy::-moz-progress-bar {
+    background-color: #2563eb;
+}
+
+/* Typing indicator dots in the assistant chat. */
+@keyframes typing-dot {
+    0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
+}
+.typing-dot {
+    animation: typing-dot 1.2s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+    .typing-dot { animation: none; opacity: 0.6; }
 }

@@ -1,37 +1,61 @@
 {% extends "base.html" %}
+{% import "_ui.html" as ui %}
 
 {% block title %}Dashboard · ClinicBook{% endblock %}
 
 {% block content %}
-{% set label_cls = "mb-1 block text-sm font-medium text-slate-700" %}
-{% set input_cls = "block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30" %}
-{% set card_cls = "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" %}
+{% set label_cls = "mb-1.5 block text-sm font-medium text-slate-700" %}
+{% set input_cls = "block w-full rounded-lg border-0 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm ring-1 ring-slate-300 ring-inset placeholder:text-slate-400 focus:ring-2 focus:ring-blue-600 focus:outline-none" %}
+{% set card_cls = "rounded-2xl border border-slate-200 bg-white shadow-sm" %}
+{% set doctor_q = selected_doctor.id if selected_doctor else none %}
 
-<div class="mb-8">
-    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Appointment dashboard</h1>
-    <p class="mt-1 text-sm text-slate-500">Create a doctor's schedule, then book or cancel appointments.</p>
+<!-- Page header -->
+<div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+        <p class="text-sm font-medium text-blue-600">Dashboard</p>
+        <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Appointments</h1>
+        <p class="mt-1 text-sm text-slate-500">Create doctors' schedules, then book or cancel appointments.</p>
+    </div>
+    <a href="/assistant" class="inline-flex items-center gap-2 self-start rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 sm:self-auto">
+        {{ ui.icon("sparkles", "h-4 w-4") }} Book with the AI assistant
+    </a>
 </div>
 
-{% if error_message %}
-<div role="alert" class="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-    <span aria-hidden="true" class="font-bold">!</span>
-    <p>{{ error_message }}</p>
-</div>
-{% endif %}
-{% if success_message %}
-<div role="status" class="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-    <span aria-hidden="true" class="font-bold">✓</span>
-    <p>{{ success_message }}</p>
-</div>
-{% endif %}
+{% if error_message %}{{ ui.alert("error", error_message) }}{% endif %}
+{% if success_message %}{{ ui.alert("success", success_message) }}{% endif %}
+
+<!-- Doctors -->
+<section aria-labelledby="doctors-heading" class="mb-8">
+    <h2 id="doctors-heading" class="mb-3 text-sm font-semibold text-slate-900">Doctors</h2>
+    <ul class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {% for doc in doctors %}
+        {% set active = selected_doctor and selected_doctor.id == doc.id %}
+        <li>
+            <a href="/?doctor_id={{ doc.id }}&amp;date={{ selected_date.isoformat() }}" {% if active %}aria-current="true"{% endif %}
+               class="flex items-center gap-3 rounded-xl border bg-white p-3 shadow-sm transition sm:p-3.5 {{ 'border-blue-500 ring-2 ring-blue-500/20' if active else 'border-slate-200 hover:border-slate-300 hover:shadow' }}">
+                {{ ui.doctor_avatar(doc) }}
+                <span class="min-w-0">
+                    <span class="block truncate text-sm font-semibold text-slate-900">{{ doc.name }}</span>
+                    <span class="block truncate text-xs text-slate-500">{{ doc.specialty }}</span>
+                </span>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
 
 <div class="grid gap-6 lg:grid-cols-3">
     <!-- Schedule setup -->
-    <section class="{{ card_cls }} lg:col-span-1 self-start">
-        <h2 class="text-base font-semibold text-slate-900">Create schedule</h2>
-        <p class="mt-1 mb-5 text-sm text-slate-500">Slots that already exist are skipped automatically.</p>
+    <section id="schedule" class="{{ card_cls }} order-last self-start p-6 lg:order-none lg:col-span-1" aria-labelledby="schedule-heading">
+        <div class="flex items-center gap-3">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">{{ ui.icon("calendar", "h-5 w-5") }}</span>
+            <div>
+                <h2 id="schedule-heading" class="text-base font-semibold text-slate-900">Create schedule</h2>
+                <p class="text-xs text-slate-500">Existing slots are skipped automatically.</p>
+            </div>
+        </div>
 
-        <form action="/generate-schedule" method="post" class="space-y-4">
+        <form action="/generate-schedule" method="post" class="mt-6 space-y-4">
             <div>
                 <label for="gen-doctor" class="{{ label_cls }}">Doctor</label>
                 <select id="gen-doctor" name="doctor_id" required class="{{ input_cls }}">
@@ -41,12 +65,10 @@
                     {% endfor %}
                 </select>
             </div>
-
             <div>
                 <label for="gen-date" class="{{ label_cls }}">Date</label>
                 <input id="gen-date" type="date" name="date" value="{{ selected_date.isoformat() }}" min="{{ min_date.isoformat() }}" required class="{{ input_cls }}">
             </div>
-
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label for="gen-start" class="{{ label_cls }}">Start</label>
@@ -57,107 +79,120 @@
                     <input id="gen-end" type="time" name="end_time" value="13:00" required class="{{ input_cls }}">
                 </div>
             </div>
-
             <div>
-                <label for="gen-duration" class="{{ label_cls }}">Slot length (minutes)</label>
-                <input id="gen-duration" type="number" name="slot_duration" value="30" min="1" max="240" step="1" required class="{{ input_cls }}">
+                <label for="gen-duration" class="{{ label_cls }}">Slot length</label>
+                <div class="relative">
+                    <input id="gen-duration" type="number" name="slot_duration" value="30" min="1" max="240" step="1" required class="{{ input_cls }} pr-16">
+                    <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-slate-400">minutes</span>
+                </div>
             </div>
-
-            <button type="submit" class="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
-                Generate time slots
+            <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2">
+                {{ ui.icon("plus", "h-4 w-4") }} Generate time slots
             </button>
         </form>
     </section>
 
-    <!-- Appointments -->
-    <section class="{{ card_cls }} lg:col-span-2">
-        <div class="flex flex-col gap-4">
-            <div>
-                <h2 class="text-base font-semibold text-slate-900">Appointments</h2>
-                <p class="mt-1 text-sm text-slate-500">
-                    {% if selected_doctor %}{{ selected_doctor.display_name }} · {{ selected_date.strftime('%A, %d %B %Y') }}{% else %}Choose a doctor to see their slots.{% endif %}
-                </p>
+    <!-- Day view -->
+    <section class="{{ card_cls }} lg:col-span-2" aria-labelledby="day-heading">
+        <div class="flex flex-col gap-4 border-b border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3">
+                {% if selected_doctor %}{{ ui.doctor_avatar(selected_doctor) }}{% endif %}
+                <div>
+                    <h2 id="day-heading" class="text-base font-semibold text-slate-900">
+                        {{ selected_doctor.name if selected_doctor else "Daily schedule" }}
+                    </h2>
+                    <p class="text-sm text-slate-500">
+                        {% if selected_doctor %}{{ selected_doctor.specialty }} · {% endif %}{{ selected_date.strftime('%A, %d %B %Y') }}
+                    </p>
+                </div>
             </div>
 
-            <form action="/" method="get" class="flex flex-wrap items-end gap-2 rounded-xl bg-slate-50 p-3">
-                <div class="min-w-48 flex-1">
-                    <label for="view-doctor" class="sr-only">Doctor</label>
-                    <select id="view-doctor" name="doctor_id" class="{{ input_cls }}">
-                        <option value="">Choose a doctor</option>
-                        {% for doc in doctors %}
-                        <option value="{{ doc.id }}" {% if selected_doctor and selected_doctor.id == doc.id %}selected{% endif %}>{{ doc.display_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label for="view-date" class="sr-only">Date</label>
-                    <input id="view-date" type="date" name="date" value="{{ selected_date.isoformat() }}" class="{{ input_cls }}">
-                </div>
-                <button type="submit" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">
-                    View
-                </button>
+            <form action="/" method="get" class="flex items-center gap-1.5">
+                {% if selected_doctor %}<input type="hidden" name="doctor_id" value="{{ selected_doctor.id }}">{% endif %}
+                <a href="/?{% if doctor_q %}doctor_id={{ doctor_q }}&amp;{% endif %}date={{ prev_date.isoformat() }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-900" aria-label="Previous day">
+                    {{ ui.icon("chevron-left", "h-4 w-4") }}
+                </a>
+                <label for="view-date" class="sr-only">Date</label>
+                <input id="view-date" type="date" name="date" value="{{ selected_date.isoformat() }}" onchange="this.form.submit()"
+                       class="h-9 rounded-lg border-0 px-2.5 text-sm text-slate-700 ring-1 ring-slate-200 ring-inset focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                <a href="/?{% if doctor_q %}doctor_id={{ doctor_q }}&amp;{% endif %}date={{ next_date.isoformat() }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-900" aria-label="Next day">
+                    {{ ui.icon("chevron-right", "h-4 w-4") }}
+                </a>
+                {% if selected_date != today %}
+                <a href="/?{% if doctor_q %}doctor_id={{ doctor_q }}&amp;{% endif %}date={{ today.isoformat() }}" class="ml-1 rounded-lg px-2.5 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50">Today</a>
+                {% endif %}
+                <noscript><button type="submit" class="rounded-lg px-2.5 py-2 text-sm font-medium text-blue-600">Go</button></noscript>
             </form>
         </div>
 
         {% if appointments %}
+        {% set total = appointments | length %}
         {% set booked = appointments | selectattr('is_booked') | list | length %}
-        <dl class="mt-6 grid grid-cols-3 gap-3 text-center">
-            <div class="rounded-xl bg-slate-50 px-3 py-3">
-                <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">Total</dt>
-                <dd class="mt-1 text-xl font-semibold text-slate-900">{{ appointments | length }}</dd>
+        <dl class="grid grid-cols-3 divide-x divide-slate-200 border-b border-slate-200">
+            <div class="px-6 py-4">
+                <dt class="text-xs font-medium text-slate-500">Total slots</dt>
+                <dd class="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{{ total }}</dd>
             </div>
-            <div class="rounded-xl bg-emerald-50 px-3 py-3">
-                <dt class="text-xs font-medium uppercase tracking-wide text-emerald-700">Available</dt>
-                <dd class="mt-1 text-xl font-semibold text-emerald-700">{{ appointments | length - booked }}</dd>
+            <div class="px-6 py-4">
+                <dt class="text-xs font-medium text-slate-500">Free</dt>
+                <dd class="mt-1 text-2xl font-semibold tracking-tight text-emerald-600">{{ total - booked }}</dd>
             </div>
-            <div class="rounded-xl bg-rose-50 px-3 py-3">
-                <dt class="text-xs font-medium uppercase tracking-wide text-rose-700">Booked</dt>
-                <dd class="mt-1 text-xl font-semibold text-rose-700">{{ booked }}</dd>
+            <div class="px-6 py-4">
+                <dt class="text-xs font-medium text-slate-500">Booked</dt>
+                <dd class="mt-1 flex items-baseline gap-2">
+                    <span class="text-2xl font-semibold tracking-tight text-slate-900">{{ booked }}</span>
+                    <span class="text-xs text-slate-500">{{ (booked * 100 / total) | round | int }}% full</span>
+                </dd>
             </div>
         </dl>
+        <progress value="{{ booked }}" max="{{ total }}" class="occupancy block h-1 w-full" aria-label="Occupancy"></progress>
 
-        <ul class="mt-6 grid gap-4 sm:grid-cols-2">
+        <ul class="divide-y divide-slate-100">
             {% for slot in appointments %}
-            <li class="rounded-xl border p-4 {% if slot.is_booked %}border-rose-200 bg-rose-50/40{% else %}border-slate-200 bg-white{% endif %}">
-                <div class="flex items-center justify-between">
-                    <p class="text-sm font-semibold text-slate-900">{{ slot.time_range }}</p>
+            <li class="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center {{ 'bg-slate-50/60' if slot.is_booked }}">
+                <div class="flex items-center gap-3 sm:w-52 sm:shrink-0">
+                    {{ ui.icon("clock", "h-5 w-5 text-slate-400") }}
+                    <span class="text-sm font-semibold tabular-nums text-slate-900">{{ slot.start_time.strftime('%H:%M') }} – {{ slot.end_time.strftime('%H:%M') }}</span>
                     {% if slot.is_booked %}
-                    <span class="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-700">Booked</span>
+                    <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-600/20 ring-inset">Booked</span>
                     {% else %}
-                    <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">Available</span>
+                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20 ring-inset">Available</span>
                     {% endif %}
                 </div>
 
                 {% if slot.is_booked %}
-                <p class="mt-3 text-sm text-slate-600">Patient: <span class="font-medium text-slate-900">{{ slot.patient_name }}</span></p>
-                {% if slot.phone_number %}<p class="mt-1 text-sm text-slate-600">Phone: <span class="font-medium text-slate-900">{{ slot.phone_number }}</span></p>{% endif %}
-                <form action="/cancel-slot/{{ slot.id }}" method="post" class="mt-3">
-                    <button type="submit" class="w-full rounded-lg border border-rose-300 bg-white px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-50">
-                        Cancel booking
+                <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+                    <span class="inline-flex min-w-0 items-center gap-1.5 font-medium text-slate-900">{{ ui.icon("user", "h-4 w-4 shrink-0 text-slate-400") }}<span class="truncate">{{ slot.patient_name }}</span></span>
+                    {% if slot.phone_number %}<span class="inline-flex items-center gap-1.5 tabular-nums text-slate-600">{{ ui.icon("phone", "h-4 w-4 text-slate-400") }}{{ slot.phone_number }}</span>{% endif %}
+                </div>
+                <form action="/cancel-slot/{{ slot.id }}" method="post">
+                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-red-600 ring-1 ring-red-200 transition hover:bg-red-50">
+                        {{ ui.icon("x-mark", "h-4 w-4") }} Cancel
                     </button>
                 </form>
                 {% else %}
-                <form action="/book-slot/{{ slot.id }}" method="post" class="mt-3 space-y-2">
+                <form action="/book-slot/{{ slot.id }}" method="post" class="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
                     <label for="name-{{ slot.id }}" class="sr-only">Patient name</label>
-                    <input id="name-{{ slot.id }}" type="text" name="patient_name" placeholder="Patient name" maxlength="100" required autocomplete="name" class="{{ input_cls }}">
-                    <div class="flex gap-2">
-                        <label for="phone-{{ slot.id }}" class="sr-only">Phone number</label>
-                        <input id="phone-{{ slot.id }}" type="tel" name="phone_number" placeholder="Phone number" maxlength="20" required autocomplete="tel" class="{{ input_cls }}">
-                        <button type="submit" class="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-                            Book
-                        </button>
-                    </div>
+                    <input id="name-{{ slot.id }}" type="text" name="patient_name" placeholder="Patient name" maxlength="100" required autocomplete="name" class="{{ input_cls }} py-1.5">
+                    <label for="phone-{{ slot.id }}" class="sr-only">Phone number</label>
+                    <input id="phone-{{ slot.id }}" type="tel" name="phone_number" placeholder="Phone number" maxlength="20" required autocomplete="tel" class="{{ input_cls }} py-1.5">
+                    <button type="submit" class="rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">Book</button>
                 </form>
                 {% endif %}
             </li>
             {% endfor %}
         </ul>
         {% else %}
-        <div class="mt-6 rounded-xl border border-dashed border-slate-300 px-6 py-12 text-center">
-            <p class="text-sm font-medium text-slate-700">No slots to show</p>
-            <p class="mt-1 text-sm text-slate-500">
-                {% if selected_doctor %}There are no slots for this doctor on this day. Create a schedule to add some.{% else %}Choose a doctor and date above, or create a schedule.{% endif %}
-            </p>
+        <div class="flex flex-col items-center px-6 py-16 text-center">
+            <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">{{ ui.icon("calendar", "h-6 w-6") }}</span>
+            {% if selected_doctor %}
+            <p class="mt-4 text-sm font-semibold text-slate-900">No slots on this day</p>
+            <p class="mt-1 max-w-sm text-sm text-slate-500">{{ selected_doctor.name }} has no schedule for {{ selected_date.strftime('%A, %d %B') }} yet.</p>
+            <a href="#schedule" class="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">{{ ui.icon("plus", "h-4 w-4") }} Create a schedule</a>
+            {% else %}
+            <p class="mt-4 text-sm font-semibold text-slate-900">Select a doctor</p>
+            <p class="mt-1 max-w-sm text-sm text-slate-500">Choose a doctor above to see their slots for the day, or create a new schedule.</p>
+            {% endif %}
         </div>
         {% endif %}
     </section>
