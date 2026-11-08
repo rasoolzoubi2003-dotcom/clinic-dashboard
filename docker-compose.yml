@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: sqlite:////app/data/clinic.db
+    volumes:
+      - clinic-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  clinic-data:

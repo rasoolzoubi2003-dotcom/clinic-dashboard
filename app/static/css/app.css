@@ -1,0 +1,11 @@
+/* Small global styles. Layout and components use Tailwind utility classes in the templates. */
+
+body {
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Keep native date/time pickers readable in all browsers. */
+input[type="date"],
+input[type="time"] {
+    min-height: 2.5rem;
+}

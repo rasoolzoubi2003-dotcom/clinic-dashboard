@@ -1,0 +1,9 @@
+[project]
+name = "clinic-dashboard"
+version = "1.0.0"
+description = "Clinic appointment booking app built with FastAPI, SQLAlchemy and Jinja2."
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

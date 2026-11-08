@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ClinicBook{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11"></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800 antialiased">
+    <header class="bg-slate-900 text-white">
+        <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+            <a href="/" class="flex items-center gap-2 text-lg font-semibold tracking-tight">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold">CB</span>
+                ClinicBook
+            </a>
+            <nav class="flex items-center gap-1 text-sm">
+                {% block nav %}
+                <a href="/" class="rounded-md px-3 py-2 font-medium text-slate-200 hover:bg-slate-800 hover:text-white">Dashboard</a>
+                {% endblock %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="mx-auto max-w-6xl px-4 pb-8 text-xs text-slate-400 sm:px-6">
+        Built with FastAPI, SQLAlchemy and Jinja2.
+    </footer>
+</body>
+</html>
