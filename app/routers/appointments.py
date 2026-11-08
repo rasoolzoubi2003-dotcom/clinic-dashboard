@@ -32,6 +32,14 @@ def _parse_int(value: str | None) -> int | None:
         return None
 
 
+def _shift(day: dt.date, days: int) -> dt.date | None:
+    """day + days, or None at the edges of the supported date range."""
+    try:
+        return day + dt.timedelta(days=days)
+    except OverflowError:
+        return None
+
+
 def _parse_date(value: str | None) -> dt.date | None:
     try:
         return dt.date.fromisoformat(value) if value else None
@@ -51,17 +59,19 @@ async def view_appointments(
     db: Session = Depends(get_db),
 ):
     # Query params are parsed leniently: a bad value falls back to the default instead of a 422.
-    selected_date = _parse_date(date) or today()
+    current_day = today()
+    selected_date = _parse_date(date) or current_day
     selected_id = _parse_int(doctor_id)
     doctors = services.list_doctors(db)
     selected_doctor = next((d for d in doctors if d.id == selected_id), None)
+    doctor_param = selected_doctor.id if selected_doctor else None
     appointments = services.list_slots(db, selected_doctor.id, selected_date) if selected_doctor else []
 
     # Per-doctor totals for the selected day, shown on the doctor cards and the summary banner.
-    day_stats = {}
-    for doctor in doctors:
-        slots = services.list_slots(db, doctor.id, selected_date)
-        day_stats[doctor.id] = {"total": len(slots), "free": sum(not s.is_booked for s in slots)}
+    counts = services.slot_counts_by_doctor(db, selected_date)
+    day_stats = {d.id: counts.get(d.id, {"total": 0, "free": 0}) for d in doctors}
+
+    prev_date, next_date = _shift(selected_date, -1), _shift(selected_date, 1)
 
     return templates.TemplateResponse(
         request=request,
@@ -71,13 +81,14 @@ async def view_appointments(
             "doctors": doctors,
             "selected_doctor": selected_doctor,
             "selected_date": selected_date,
-            "min_date": today(),
-            "today": today(),
+            "today": current_day,
             "day_stats": day_stats,
             "day_total": sum(s["total"] for s in day_stats.values()),
             "day_free": sum(s["free"] for s in day_stats.values()),
-            "prev_date": selected_date - dt.timedelta(days=1),
-            "next_date": selected_date + dt.timedelta(days=1),
+            "doctor_urls": {d.id: home_url(doctor_id=d.id, date=selected_date) for d in doctors},
+            "prev_url": home_url(doctor_id=doctor_param, date=prev_date) if prev_date else None,
+            "next_url": home_url(doctor_id=doctor_param, date=next_date) if next_date else None,
+            "today_url": home_url(doctor_id=doctor_param, date=current_day) if selected_date != current_day else None,
             "error_message": messages.error_message(error),
             "success_message": messages.success_message(
                 success, _parse_int(created) or 0, _parse_int(skipped) or 0

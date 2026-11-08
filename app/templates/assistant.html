@@ -153,5 +153,8 @@
 {% endblock %}
 
 {% block scripts %}
+{# Avatar icons for chat messages, cloned by assistant.js so the SVG markup lives only in _ui.html. #}
+<template id="icon-assistant">{{ ui.icon("sparkles", "h-4 w-4") }}</template>
+<template id="icon-user">{{ ui.icon("user", "h-4 w-4") }}</template>
 <script src="{{ url_for('static', path='js/assistant.js') }}" defer></script>
 {% endblock %}

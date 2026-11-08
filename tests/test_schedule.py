@@ -96,3 +96,15 @@ def test_page_load_does_not_delete_data(client, db, doctor, future_day):
     assert client.get("/").status_code == 200
     assert client.get("/", params={"doctor_id": doctor.id, "date": future_day}).status_code == 200
     assert len(services.list_slots(db, doctor.id, future_day)) == 2
+
+
+def test_slot_counts_by_doctor(db, doctor, other_doctor, future_day):
+    services.generate_slots(db, doctor.id, future_day, t(9), t(11), 30)
+    services.generate_slots(db, other_doctor.id, future_day, t(9), t(10), 30)
+    first = services.list_slots(db, doctor.id, future_day)[0]
+    services.book_slot(db, first.id, "Lina", "0791234567")
+
+    counts = services.slot_counts_by_doctor(db, future_day)
+
+    assert counts == {doctor.id: {"total": 4, "free": 3}, other_doctor.id: {"total": 2, "free": 2}}
+    assert services.slot_counts_by_doctor(db, future_day + dt.timedelta(days=1)) == {}

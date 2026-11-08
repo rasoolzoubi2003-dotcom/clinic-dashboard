@@ -10,12 +10,7 @@
   const statusDot = el("status-dot");
   let busy = false;
 
-  // Static icon markup (trusted constants). Message text is always inserted with textContent.
-  const SPARKLES =
-    '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="h-4 w-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/></svg>';
-  const USER =
-    '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="h-4 w-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>';
-
+  // Message text is always inserted with textContent, never as HTML.
   // Strip markdown bold that small models like to add; replies are shown as plain text.
   const clean = (text) => (text || "").replace(/\*\*(.+?)\*\*/g, "$1").trim();
 
@@ -28,7 +23,7 @@
           ? "bg-rose-100 text-rose-600"
           : "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-indigo-500/30";
     span.className = `inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${tone}`;
-    span.innerHTML = role === "user" ? USER : SPARKLES;
+    span.append(el(role === "user" ? "icon-user" : "icon-assistant").content.cloneNode(true));
     return span;
   }
 
@@ -181,7 +176,8 @@
     try {
       const response = await fetch("/api/assistant/status");
       const status = await response.json();
-      statusDot.className = statusDot.className.replace(/bg-\S+/, status.ready ? "bg-emerald-400" : "bg-amber-400");
+      statusDot.classList.remove("bg-slate-300", "bg-emerald-400", "bg-amber-400");
+      statusDot.classList.add(status.ready ? "bg-emerald-400" : "bg-amber-400");
       el("status-text").textContent = status.ready
         ? `Online · ${status.provider}`
         : status.provider

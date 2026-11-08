@@ -8,7 +8,6 @@
 {% set input_cls = "block w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm ring-1 ring-slate-200 ring-inset placeholder:text-slate-400 transition focus:ring-2 focus:ring-indigo-500 focus:outline-none" %}
 {% set card_cls = "rounded-3xl border border-white bg-white/90 shadow-xl shadow-slate-900/5 ring-1 ring-slate-900/5 backdrop-blur" %}
 {% set primary_btn = "inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2" %}
-{% set doctor_q = selected_doctor.id if selected_doctor else none %}
 
 <!-- Hero -->
 <section class="animate-fade-up relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 px-6 py-8 text-white shadow-2xl shadow-indigo-600/25 sm:px-10 sm:py-10">
@@ -67,7 +66,7 @@
         {% set t = SPECIALTY_THEMES.get(doc.specialty, DEFAULT_THEME) %}
         {% set stats = day_stats[doc.id] %}
         <li>
-            <a href="/?doctor_id={{ doc.id }}&amp;date={{ selected_date.isoformat() }}" {% if active %}aria-current="true"{% endif %}
+            <a href="{{ doctor_urls[doc.id] }}" {% if active %}aria-current="true"{% endif %}
                class="group relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl bg-white p-4 shadow-md shadow-slate-900/5 ring-1 transition duration-200 hover:-translate-y-1 hover:shadow-xl {{ 'ring-2 ring-indigo-500' if active else 'ring-slate-900/5' }}">
                 <span class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r {{ t.avatar }} opacity-80" aria-hidden="true"></span>
                 <div class="flex items-center justify-between">
@@ -111,7 +110,7 @@
             </div>
             <div>
                 <label for="gen-date" class="{{ label_cls }}">Date</label>
-                <input id="gen-date" type="date" name="date" value="{{ selected_date.isoformat() }}" min="{{ min_date.isoformat() }}" required class="{{ input_cls }}">
+                <input id="gen-date" type="date" name="date" value="{{ selected_date.isoformat() }}" min="{{ today.isoformat() }}" required class="{{ input_cls }}">
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -154,17 +153,21 @@
 
             <form action="/" method="get" class="flex items-center gap-1.5 rounded-2xl bg-slate-100/80 p-1">
                 {% if selected_doctor %}<input type="hidden" name="doctor_id" value="{{ selected_doctor.id }}">{% endif %}
-                <a href="/?{% if doctor_q %}doctor_id={{ doctor_q }}&amp;{% endif %}date={{ prev_date.isoformat() }}" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white hover:text-slate-900 hover:shadow-sm" aria-label="Previous day">
+                {% if prev_url %}
+                <a href="{{ prev_url }}" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white hover:text-slate-900 hover:shadow-sm" aria-label="Previous day">
                     {{ ui.icon("chevron-left", "h-4 w-4") }}
                 </a>
+                {% endif %}
                 <label for="view-date" class="sr-only">Date</label>
                 <input id="view-date" type="date" name="date" value="{{ selected_date.isoformat() }}" onchange="this.form.submit()"
                        class="h-8 rounded-xl border-0 bg-white px-2.5 text-sm text-slate-700 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                <a href="/?{% if doctor_q %}doctor_id={{ doctor_q }}&amp;{% endif %}date={{ next_date.isoformat() }}" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white hover:text-slate-900 hover:shadow-sm" aria-label="Next day">
+                {% if next_url %}
+                <a href="{{ next_url }}" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white hover:text-slate-900 hover:shadow-sm" aria-label="Next day">
                     {{ ui.icon("chevron-right", "h-4 w-4") }}
                 </a>
-                {% if selected_date != today %}
-                <a href="/?{% if doctor_q %}doctor_id={{ doctor_q }}&amp;{% endif %}date={{ today.isoformat() }}" class="rounded-xl px-2.5 py-1.5 text-sm font-semibold text-indigo-600 transition hover:bg-white hover:shadow-sm">Today</a>
+                {% endif %}
+                {% if today_url %}
+                <a href="{{ today_url }}" class="rounded-xl px-2.5 py-1.5 text-sm font-semibold text-indigo-600 transition hover:bg-white hover:shadow-sm">Today</a>
                 {% endif %}
                 <noscript><button type="submit" class="rounded-xl px-2.5 py-1.5 text-sm font-medium text-indigo-600">Go</button></noscript>
             </form>

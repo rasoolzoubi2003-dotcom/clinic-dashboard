@@ -8,7 +8,7 @@ the UI maps to a message.
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
-from sqlalchemy import func, select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.orm import Session, joinedload
 
 from app.clock import now
@@ -120,6 +120,17 @@ def list_slots(db: Session, doctor_id: int, day: date) -> list[Appointment]:
         .order_by(Appointment.start_time)
     )
     return list(db.scalars(query))
+
+
+def slot_counts_by_doctor(db: Session, day: date) -> dict[int, dict[str, int]]:
+    """Total and free (unbooked) slot counts per doctor for one day, in a single query."""
+    free = func.sum(case((Appointment.is_booked.is_(False), 1), else_=0))
+    query = (
+        select(Appointment.doctor_id, func.count(Appointment.id), free)
+        .where(Appointment.date == day)
+        .group_by(Appointment.doctor_id)
+    )
+    return {doctor_id: {"total": total, "free": free_count or 0} for doctor_id, total, free_count in db.execute(query)}
 
 
 def list_available_slots(
