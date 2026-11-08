@@ -5,9 +5,11 @@ Staff manage schedules and bookings from a dashboard, and patients can book, che
 appointments by chatting with an **AI booking assistant that runs on a local LLM**.
 
 Built with **FastAPI**, **SQLAlchemy 2.0**, **Jinja2**, **Tailwind CSS** and **Ollama** (`qwen2.5:7b`),
-with optional support for the **Claude API**. 184 tests, Docker support.
+with optional support for the **Claude API**. 189 tests, Docker support.
 
 ![ClinicBook dashboard](docs/screenshot.png)
+
+![ClinicBook AI booking assistant](docs/assistant.png)
 
 ## Features
 
@@ -20,6 +22,7 @@ with optional support for the **Claude API**. 184 tests, Docker support.
   - A patient can't book the same doctor twice on the same day.
   - A patient can't hold two overlapping appointments.
   - Slots that have already started can't be booked.
+- **Day overview**: doctor cards with free-slot counts for the day, day-by-day navigation, and occupancy stats.
 - **Cancel bookings** to free a slot again.
 - **Clear feedback**: every failure (missing slot, already booked, invalid input) shows a specific message.
 - **Input validation** with Pydantic: slot duration range, end time after start time, no past dates, required name and phone number.
@@ -31,6 +34,13 @@ with optional support for the **Claude API**. 184 tests, Docker support.
 - **Local-first**: runs on Ollama by default, with no API key and no internet connection.
 - **Confirmation enforced in code**: nothing is booked or cancelled until the patient confirms.
 - **Privacy**: looking up or cancelling a booking requires the patient's name **and** phone number.
+- **Clear chat UI**: a confirmation card built from database values, quick-start suggestions, a live Online/Offline status, and an elapsed-time indicator while a local model is thinking.
+
+**Interface**
+
+- Responsive layout for desktop and mobile, built with Tailwind CSS and no build step.
+- Consistent design: shared icon and alert macros (Heroicons), a colour per specialty, gradient accents.
+- Accessible: labelled form fields, screen-reader names for icon-only links, `aria-live` chat updates, and animations turned off for users who prefer reduced motion.
 
 ## Tech stack
 
@@ -39,7 +49,7 @@ with optional support for the **Claude API**. 184 tests, Docker support.
 | Web framework | FastAPI, Uvicorn |
 | Database / ORM | SQLite, SQLAlchemy 2.0 (typed `Mapped` models) |
 | Validation | Pydantic v2 |
-| Templates / UI | Jinja2, Tailwind CSS (CDN), plain JavaScript |
+| Templates / UI | Jinja2, Tailwind CSS (CDN), Heroicons, plain JavaScript |
 | LLM | Ollama + `qwen2.5:7b` (default), Anthropic Claude API (optional) |
 | Testing | pytest, FastAPI `TestClient`, mocked LLM providers |
 | Packaging | Docker, Docker Compose |
@@ -91,7 +101,7 @@ pytest
 
 The tests use an in-memory SQLite database and a **scripted fake LLM**, so they need no model, API key or network. They cover:
 
-- the dashboard: schedule generation, duplicate prevention, booking and double-booking rules, cancelling, input validation, HTTP routes
+- the dashboard: schedule generation, duplicate prevention, booking and double-booking rules, cancelling, input validation, HTTP routes, day navigation (including date-range edge cases)
 - the assistant tools: argument validation, slot-ID checks, the confirmation guard, name + phone privacy rules
 - the agent loop: tool calls written as text, retry and loop limits, provider errors, fallback provider, confirm buttons
 - the Ollama and Anthropic adapters, with mocked SDK clients
@@ -218,7 +228,7 @@ Then open http://localhost:8000/assistant.
 **Hardware requirements**
 
 - `qwen2.5:7b` needs about **8 GB of free RAM** (the model is ~4.7 GB on disk and ~5 GB in memory).
-- A GPU makes replies much faster. On a CPU only, expect slow replies: on a laptop i7 inside Docker Desktop (8 GB VM) we measured about 1.6 tokens/s, or roughly 1–2 minutes per reply.
+- A GPU makes replies much faster. On a CPU only, expect slow replies: on a laptop i7 inside Docker Desktop (8 GB VM) we measured about 1.6 tokens/s, or roughly 1–2 minutes per reply. The chat shows an elapsed-time counter so a slow reply doesn't look frozen.
 - Running Ollama natively instead of in Docker Desktop's VM, or using a GPU, helps a lot. A smaller model (`OLLAMA_MODEL=qwen2.5:3b`) is faster but less reliable at tool calling.
 
 ### Switching to Claude
@@ -290,10 +300,10 @@ clinic-dashboard/
 │   ├── routers/
 │   │   ├── appointments.py  # dashboard
 │   │   └── assistant.py     # chat page + JSON API
-│   ├── templates/           # base.html, home.html, assistant.html
-│   └── static/              # css/app.css, js/assistant.js
-├── tests/                   # pytest suite (184 tests)
-├── docs/screenshot.png
+│   ├── templates/           # base.html, home.html, assistant.html, _ui.html (icon/alert macros)
+│   └── static/              # css/app.css, js/assistant.js, img/logo.svg
+├── tests/                   # pytest suite (189 tests)
+├── docs/                    # screenshots
 ├── Dockerfile
 ├── docker-compose.yml       # app + ollama + model pull
 ├── requirements.txt         # runtime dependencies (pinned)
@@ -306,4 +316,6 @@ clinic-dashboard/
 - **Thin routes, testable services.** Routes only parse input and pick a response; all rules live in `services.py`, which raises typed errors (`SlotNotFound`, `PatientAlreadyBooked`, …). The dashboard and the AI tools both call it.
 - **Post/Redirect/Get.** Every dashboard form post redirects back. Only message *codes* go in the URL, never raw text, so a crafted link can't inject content into the page.
 - **Tailwind via CDN** keeps the project free of a Node build step. For production you would compile Tailwind into a static CSS file.
+- **One source for icons.** SVG icons are defined once (`ICON_PATHS` in `templating.py`) and rendered by a Jinja macro; the chat clones them from `<template>` elements instead of repeating the markup in JavaScript.
+- **Efficient day summary.** Per-doctor slot counts come from a single `GROUP BY` query.
 - **Schema changes** are applied with `create_all` plus a small add-missing-columns step on startup, which is fine for a demo. A production deployment would use Alembic migrations.
