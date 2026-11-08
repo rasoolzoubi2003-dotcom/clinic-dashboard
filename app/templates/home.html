@@ -129,19 +129,24 @@
                 </div>
 
                 {% if slot.is_booked %}
-                <p class="mt-3 text-sm text-slate-600">Patient: <span dir="auto" class="font-medium text-slate-900">{{ slot.patient_name }}</span></p>
+                <p class="mt-3 text-sm text-slate-600">Patient: <span class="font-medium text-slate-900">{{ slot.patient_name }}</span></p>
+                {% if slot.phone_number %}<p class="mt-1 text-sm text-slate-600">Phone: <span class="font-medium text-slate-900">{{ slot.phone_number }}</span></p>{% endif %}
                 <form action="/cancel-slot/{{ slot.id }}" method="post" class="mt-3">
                     <button type="submit" class="w-full rounded-lg border border-rose-300 bg-white px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-50">
                         Cancel booking
                     </button>
                 </form>
                 {% else %}
-                <form action="/book-slot/{{ slot.id }}" method="post" class="mt-3 flex gap-2">
+                <form action="/book-slot/{{ slot.id }}" method="post" class="mt-3 space-y-2">
                     <label for="name-{{ slot.id }}" class="sr-only">Patient name</label>
-                    <input id="name-{{ slot.id }}" type="text" name="patient_name" placeholder="Patient name" maxlength="100" required dir="auto" class="{{ input_cls }}">
-                    <button type="submit" class="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-                        Book
-                    </button>
+                    <input id="name-{{ slot.id }}" type="text" name="patient_name" placeholder="Patient name" maxlength="100" required autocomplete="name" class="{{ input_cls }}">
+                    <div class="flex gap-2">
+                        <label for="phone-{{ slot.id }}" class="sr-only">Phone number</label>
+                        <input id="phone-{{ slot.id }}" type="tel" name="phone_number" placeholder="Phone number" maxlength="20" required autocomplete="tel" class="{{ input_cls }}">
+                        <button type="submit" class="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                            Book
+                        </button>
+                    </div>
                 </form>
                 {% endif %}
             </li>
